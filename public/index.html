@@ -1,0 +1,2107 @@
+<!DOCTYPE html>
+<html lang="pt" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+  <title>Painel | CrewGPS</title>
+
+  <!-- PWA / Icons -->
+  <meta name="theme-color" content="#6D28D9"/>
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="CrewGPS">
+  <link rel="apple-touch-icon" href="/assets/Logo.jpg">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/Logo.jpg">
+  <link rel="apple-touch-icon" sizes="152x152" href="/assets/Logo.jpg">
+  <link rel="apple-touch-icon" sizes="120x120" href="/assets/Logo.jpg">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/Logo.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/assets/Logo.png">
+  <link rel="manifest" id="app-manifest" href="/manifest.webmanifest">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter','sans-serif'] },
+          colors: {
+            'brand-purple': '#6D28D9',
+            'brand-gray': { 900:'#111014', 800:'#1C1B22', 700:'#32323D', 200:'#E4E4E7', 100:'#F1F1F3' }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    .hidden { display:none; }
+    .nav-btn { position: relative; transition: color .2s; }
+    .nav-active svg, .nav-active span { color:#6D28D9; }
+
+    .gm-style-cc, .gmnoprint, a[title="Abrir esta área no Google Maps"], .gm-style-cc + div { display:none !important; }
+
+    .view-container { display:flex; transition: transform .3s ease-in-out; width:500%; height:calc(100vh - 80px); }
+    .view { width:20%; height:100%; flex-shrink:0; }
+
+    .pac-container { background:#1C1B22; border:1px solid #32323D; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,.1); margin-top:4px; z-index:1050; }
+    .pac-item { padding:10px; cursor:pointer; color:#E4E4E7; border-top:1px solid #32323D; }
+    .pac-item:first-child { border-top:none; }
+    .pac-item:hover { background:#32323D; }
+    .pac-item-query { color:#fff; font-weight:500; }
+    .pac-matched { color:#c5b3e6; }
+    .hdpi.pac-logo:after { display:none; }
+
+    .toggle-checkbox:checked { right:0; border-color:#6D28D9; }
+    .toggle-checkbox:checked + .toggle-label { background:#6D28D9; }
+
+    .modal-content { transition: transform .25s ease, opacity .25s ease; }
+    .modal-enter .modal-content { opacity:0; transform: scale(.95) translateY(8px); }
+    .modal-enter-to .modal-content { opacity:1; transform: scale(1) translateY(0); }
+
+    #create-event-page { overflow-y:auto; -webkit-overflow-scrolling: touch; }
+    #event-datetime { width:100%; box-sizing:border-box; }
+
+    .no-horizontal-pan { touch-action: pan-y; }
+
+    /* CHAT v2 (estilo IG/DM) */
+    .chat-group{ display:flex; align-items:flex-end; gap:6px; margin:2px 0; }
+    .chat-group.me{ justify-content:flex-end; }
+    .chat-bubble{ max-width:80%; padding:.55rem .75rem; border-radius:.9rem; line-height:1.25; word-wrap:break-word; white-space:pre-wrap; }
+    .chat-me  { background:#6D28D9; color:#fff; border-bottom-right-radius:.35rem; }
+    .chat-them{ background:#22212b; color:#E4E4E7; border-bottom-left-radius:.35rem; }
+    .chat-avatar{ width:22px; height:22px; border-radius:9999px; object-fit:cover; opacity:0; transition:opacity .15s; }
+    .chat-group.is-last .chat-avatar{ opacity:1; }
+    .chat-receipt{ font-size:10px; color:#a1a1aa; margin-top:2px; text-align:right; }
+
+
+    .badge {
+      position:absolute; top:6px; right:26px;
+      min-width: 18px; height:18px; padding:0 4px;
+      background:#ef4444; color:#fff; border-radius: 9999px;
+      font-size:10px; line-height:18px; text-align:center; font-weight:700;
+      transform: translate(50%, -50%); display:none;
+    }
+    .badge.show { display:inline-block; }
+
+    /* Pull-to-refresh */
+    .ptr-indicator { position:absolute; top:0; left:0; right:0; height:0; display:flex; align-items:center; justify-content:center; overflow:hidden; will-change: height, opacity; }
+    .ptr-bubble { background:#1C1B22; border:1px solid #32323D; color:#E4E4E7; padding:6px 10px; border-radius:9999px; font-size:12px; display:flex; align-items:center; gap:8px; box-shadow:0 6px 16px rgba(0,0,0,.25); }
+    .spin { width:14px; height:14px; border-radius:50%; border:2px solid rgba(255,255,255,.2); border-top-color:#6D28D9; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Pulsar do marcador da localização (fallback) */
+    @keyframes pulse { 0% { transform: scale(1); opacity: .8; } 70% { transform: scale(1.6); opacity: 0; } 100% { transform: scale(1.6); opacity: 0; } }
+
+    /* CHAT (lista ao estilo IG) */
+    .chat-row { display:flex; align-items:center; gap:12px; padding:10px 12px; border:1px solid #32323D; border-radius:12px; background:#1C1B22; }
+    .chat-row:hover { background:#23222c; }
+    .chat-row .primary { font-weight:600; color:#fff; line-height:1.2; }
+    .chat-row .secondary { color:#c9c9cf; font-size:12px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 60vw; }
+    .chat-row .middle-dot { width:40px; text-align:center; font-size:18px; line-height:1; color:#8a8a95; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+    .chat-row .ago { font-size:10px; color:#9b9ba3; margin-top:2px; }
+
+    /* CROP modal */
+    .crop-viewport { width: 280px; height: 280px; border-radius: 9999px; overflow: hidden; margin: 0 auto; border:1px solid #32323D; background:#0f0f14; position:relative; touch-action:none; }
+    .crop-viewport img { position:absolute; top:50%; left:50%; transform: translate(-50%, -50%) scale(1); user-select:none; -webkit-user-drag: none; }
+
+  </style>
+
+  <!-- initMap stub para o callback -->
+  <script>
+    window.__initMapPending = false;
+    window.initMap = function(){
+      if (typeof window.__actualInitMap === 'function') window.__actualInitMap();
+      else window.__initMapPending = true;
+    };
+  </script>
+</head>
+<body class="bg-brand-gray-900 text-brand-gray-100 antialiased overflow-hidden">
+
+<div id="app-container" class="no-horizontal-pan">
+  <!-- Autenticação -->
+  <div id="auth-section" class="container mx-auto max-w-3xl p-4 sm:p-6 lg:p-8">
+    <div class="bg-brand-gray-800 border border-brand-gray-700 p-8 rounded-2xl shadow-2xl max-w-md mx-auto mt-10">
+      <div class="flex flex-col items-center mb-4">
+        <img src="/assets/Logo.png" alt="CrewGPS" class="w-28 h-28 rounded-xl object-contain mb-2">
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-center text-white">CrewGPS</h1>
+      </div>
+
+      <div id="login-view">
+        <h2 class="text-xl font-semibold text-center text-brand-gray-200 mb-6">Iniciar Sessão</h2>
+        <form id="login-form">
+          <div class="mb-4">
+            <label for="login-email" class="block text-sm font-medium text-brand-gray-200 mb-1">Email</label>
+            <input type="email" id="login-email" required class="w-full px-4 py-2 bg-brand-gray-900 border border-brand-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple" autocomplete="username">
+          </div>
+          <div class="mb-4">
+            <div class="flex justify-between items-baseline">
+              <label for="login-password" class="block text-sm font-medium text-brand-gray-200 mb-1">Password</label>
+              <a href="#" id="show-forgot-password-view" class="text-xs text-brand-purple hover:underline">Esqueceu a password?</a>
+            </div>
+            <input type="password" id="login-password" required class="w-full px-4 py-2 bg-brand-gray-900 border border-brand-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple" autocomplete="current-password">
+          </div>
+          <button type="submit" class="w-full bg-brand-purple text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 transition duration-300 mt-6">Entrar</button>
+        </form>
+        <p class="text-center text-sm text-brand-gray-200 mt-6">Ainda não tem conta? <a href="#" id="show-register-view" class="font-medium text-brand-purple hover:underline">Registe-se</a></p>
+      </div>
+
+      <div id="register-view" class="hidden">
+        <h2 class="text-xl font-semibold text-center text-brand-gray-200 mb-6">Criar Conta</h2>
+        <form id="register-form">
+          <div class="mb-4"><label for="register-name" class="block text-sm font-medium text-brand-gray-200 mb-1">Nome de Utilizador</label><input type="text" id="register-name" required class="w-full px-4 py-2 bg-brand-gray-900 border border-brand-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple" autocomplete="nickname"></div>
+          <div class="mb-4"><label for="register-email" class="block text-sm font-medium text-brand-gray-200 mb-1">Email</label><input type="email" id="register-email" required class="w-full px-4 py-2 bg-brand-gray-900 border border-brand-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple" autocomplete="email"></div>
+          <div class="mb-6"><label for="register-password" class="block text-sm font-medium text-brand-gray-200 mb-1">Password</label><input type="password" id="register-password" required class="w-full px-4 py-2 bg-brand-gray-900 border border-brand-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple" autocomplete="new-password"></div>
+          <button type="submit" class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 transition duration-300">Registar</button>
+        </form>
+        <p class="text-center text-sm text-brand-gray-200 mt-6">Já tem conta? <a href="#" class="show-login-view font-medium text-brand-purple hover:underline">Inicie sessão</a></p>
+      </div>
+
+      <!-- Recuperar Password -->
+      <div id="forgot-password-view" class="hidden">
+        <h2 class="text-xl font-semibold text-center text-brand-gray-200 mb-6">Recuperar Password</h2>
+        <p class="text-center text-sm text-brand-gray-200 mb-4">Insira o seu email para receber um código.</p>
+        <form id="forgot-password-form">
+          <div class="mb-4"><label for="forgot-email" class="block text-sm font-medium text-brand-gray-200 mb-1">Email</label><input type="email" id="forgot-email" required class="w-full px-4 py-2 bg-brand-gray-900 border border-brand-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple"></div>
+          <button type="submit" class="w-full bg-brand-purple text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 transition">Enviar código</button>
+        </form>
+        <p class="text-center text-sm text-brand-gray-200 mt-6"><a href="#" class="show-login-view font-medium text-brand-purple hover:underline">Voltar ao Login</a></p>
+      </div>
+
+      <!-- Redefinir Password -->
+      <div id="reset-password-view" class="hidden">
+        <h2 class="text-xl font-semibold text-center text-brand-gray-200 mb-6">Redefinir Password</h2>
+        <form id="reset-password-form">
+          <input type="hidden" id="reset-email">
+          <div class="mb-4"><label for="reset-code" class="block text-sm font-medium text-brand-gray-200 mb-1">Código de Verificação</label><input type="text" id="reset-code" required class="w-full px-4 py-2 bg-brand-gray-900 border border-brand-gray-700 rounded-lg"></div>
+          <div class="mb-6"><label for="reset-password" class="block text-sm font-medium text-brand-gray-200 mb-1">Nova Password</label><input type="password" id="reset-password" required class="w-full px-4 py-2 bg-brand-gray-900 border-brand-gray-700 rounded-lg" autocomplete="new-password"></div>
+          <button type="submit" class="w-full bg-brand-purple text-white font-bold py-2 px-4 rounded-lg">Guardar Nova Password</button>
+        </form>
+        <p class="text-center text-sm text-brand-gray-200 mt-6"><a href="#" class="show-login-view font-medium text-brand-purple hover:underline">Voltar ao Login</a></p>
+      </div>
+
+      <div id="auth-feedback" class="mt-4 text-center text-sm font-medium"></div>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard-section" class="hidden">
+    <main id="main-content" class="h-screen overflow-hidden">
+      <div class="view-container">
+        <!-- MAPA -->
+        <div id="map-view" class="view relative">
+          <div id="map" class="w-full h-full"></div>
+          <button id="create-event-fab" class="absolute bottom-8 right-8 bg-brand-purple text-white w-16 h-16 rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-opacity-90 transition-transform duration-300 transform hover:scale-110">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
+          </button>
+        </div>
+
+        <!-- EVENTOS -->
+        <div id="events-view" class="view overflow-y-auto p-4 relative">
+          <div class="ptr-indicator" id="ptr-events">
+            <div class="ptr-bubble"><span class="spin"></span><span id="ptr-events-text">A atualizar…</span></div>
+          </div>
+
+          <div class="flex justify-between items-center mb-4">
+            <h1 class="text-3xl font-bold text-white">Eventos</h1>
+            <button id="filter-btn" class="p-2 text-brand-gray-200 hover:text-white">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"/></svg>
+            </button>
+          </div>
+          <div class="my-4">
+            <div class="border-b border-brand-gray-700">
+              <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                <button class="event-tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-brand-purple border-brand-purple" data-tab="public-events">Públicos</button>
+                <button class="event-tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-brand-gray-200 border-transparent hover:text-white hover:border-white" data-tab="my-events">Meus Eventos</button>
+              </nav>
+            </div>
+          </div>
+          <div id="public-events-content"></div>
+          <div id="my-events-content" class="hidden"></div>
+        </div>
+
+        <!-- SOCIAL -->
+        <div id="social-view" class="view overflow-y-auto relative">
+          <div class="ptr-indicator" id="ptr-social">
+            <div class="ptr-bubble"><span class="spin"></span><span id="ptr-social-text">A atualizar…</span></div>
+          </div>
+
+          <div class="p-4">
+            <h1 class="text-3xl font-bold text-white">Social</h1>
+            <div class="my-4">
+              <div class="border-b border-brand-gray-700">
+                <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                  <button class="social-tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-brand-purple border-brand-purple" data-tab="search">Pesquisar</button>
+                  <button class="social-tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-brand-gray-200 border-transparent hover:text-white hover:border-white" data-tab="invites">Convites</button>
+                  <button class="social-tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-brand-gray-200 border-transparent hover:text-white hover:border-white" data-tab="friends">Amigos</button>
+                  <button class="social-tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-brand-gray-200 border-transparent hover:text-white hover:border-white" data-tab="groups">Grupos</button>
+                </nav>
+              </div>
+            </div>
+
+            <!-- Pesquisar -->
+            <div id="search-content">
+              <input type="search" id="user-search-input" placeholder="Pesquisar por nome de utilizador..." class="w-full px-4 py-3 bg-brand-gray-800 border border-brand-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple">
+              <div id="user-search-results" class="mt-4 space-y-2"></div>
+            </div>
+
+            <!-- Convites -->
+            <div id="invites-content" class="hidden"></div>
+
+            <!-- Amigos -->
+            <div id="friends-content" class="hidden">
+              <div id="friends-list" class="space-y-2"></div>
+            </div>
+
+            <!-- Grupos -->
+            <div id="groups-content" class="hidden">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-brand-gray-800 border border-brand-gray-700 rounded-lg p-3 md:col-span-1">
+                  <div class="flex items-center justify-between mb-2">
+                    <h3 class="font-semibold">Os meus grupos</h3>
+                    <button id="refresh-groups" class="text-xs px-2 py-1 rounded bg-brand-gray-700">Atualizar</button>
+                  </div>
+                  <div id="my-groups-list" class="space-y-2 max-h-[50vh] overflow-y-auto"></div>
+                </div>
+                <div class="bg-brand-gray-800 border border-brand-gray-700 rounded-lg md:col-span-2 p-3 space-y-4">
+                  <div class="bg-brand-gray-900 rounded-lg p-3">
+                    <h3 class="font-semibold mb-2">Criar grupo</h3>
+                    <form id="create-group-form" class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      <input id="group-name" type="text" placeholder="Nome do grupo" class="px-3 py-2 bg-brand-gray-800 rounded focus:outline-none focus:ring-2 focus:ring-brand-purple">
+                      <input id="group-desc" type="text" placeholder="Descrição (opcional)" class="px-3 py-2 bg-brand-gray-800 rounded focus:outline-none focus:ring-2 focus:ring-brand-purple">
+                      <button class="px-4 py-2 bg-brand-purple rounded font-semibold">Criar</button>
+                    </form>
+                  </div>
+                  <div class="bg-brand-gray-900 rounded-lg p-3">
+                    <h3 class="font-semibold mb-2">Pesquisar grupos</h3>
+                    <div class="flex gap-2">
+                      <input id="group-search" type="text" placeholder="Nome do grupo..." class="flex-1 px-3 py-2 bg-brand-gray-800 rounded focus:outline-none focus:ring-2 focus:ring-brand-purple">
+                      <button id="group-search-btn" class="px-4 py-2 bg-brand-gray-700 rounded">Pesquisar</button>
+                    </div>
+                    <div id="group-search-results" class="mt-3 space-y-2"></div>
+                  </div>
+                  <div id="group-selected" class="bg-brand-gray-900 rounded-lg p-3">
+                    <p class="text-sm text-brand-gray-200">Selecione um grupo para ver detalhes.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- /Grupos -->
+
+          </div>
+        </div>
+
+        <!-- CHAT (lista tipo Instagram) -->
+        <div id="chat-view" class="view overflow-y-auto relative">
+          <div class="ptr-indicator" id="ptr-chat">
+            <div class="ptr-bubble"><span class="spin"></span><span id="ptr-chat-text">A atualizar…</span></div>
+          </div>
+
+          <div class="p-4">
+            <h1 class="text-3xl font-bold text-white mb-4">Mensagens</h1>
+            <div class="mb-3">
+              <input id="chat-search-input" type="search" placeholder="Pesquisar entre amigos..."
+               class="w-full px-4 py-2 bg-brand-gray-800 border border-brand-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple">
+            <div id="chat-search-results" class="mt-2 space-y-2"></div>
+          </div>
+
+            <div id="chat-users-list" class="space-y-3"></div>
+          </div>
+        </div>
+
+        <!-- CONTA -->
+        <div id="account-view" class="view overflow-y-auto">
+          <div class="p-4 sm:p-6 lg:p-8 container mx-auto max-w-3xl">
+            <header class="flex justify-between items-center mb-8">
+              <div><h1 class="text-3xl font-bold text-white">A Minha Conta</h1></div>
+              <div><button id="logout-btn" class="bg-brand-gray-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-gray-800 transition duration-300">Sair</button></div>
+            </header>
+
+            <div class="space-y-8">
+              <div>
+                <h2 class="text-lg font-semibold text-white mb-4">Perfil</h2>
+                <div class="flex items-center gap-6 bg-brand-gray-800 p-4 rounded-lg">
+                  <div class="relative">
+                    <img id="profile-picture-preview" src="https://placehold.co/96x96/1C1B22/E4E4E7?text=Perfil" class="w-24 h-24 rounded-full object-cover" alt="Foto de perfil">
+                    <button id="change-picture-btn" class="absolute -bottom-2 -right-2 bg-brand-purple p-2 rounded-full text-white hover:scale-110 transition-transform" type="button" title="Alterar foto">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
+                    </button>
+                    <input type="file" id="profile-picture-input" class="hidden" accept="image/*" capture="environment">
+                  </div>
+                  <div class="flex-1">
+                    <p id="welcome-message" class="font-bold text-xl text-white"></p>
+                    <div class="mt-2">
+                      <button id="open-friends-page" class="px-3 py-1.5 rounded bg-brand-gray-700 hover:bg-brand-gray-600 text-sm">Amigos</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h2 class="text-lg font-semibold text-white mb-4">A Minha Garagem</h2>
+                <div id="garage-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <button id="add-vehicle-btn" class="w-full h-48 bg-brand-gray-800 border-2 border-dashed border-brand-gray-700 rounded-lg flex flex-col items-center justify-center text-brand-gray-200 hover:bg-brand-gray-700 transition-colors" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
+                    <span class="mt-2 font-semibold">Adicionar Veículo</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Segurança -->
+              <div>
+                <h2 class="text-lg font-semibold text-white mb-4">Segurança</h2>
+                <div class="bg-brand-gray-800 p-4 rounded-lg space-y-4">
+                  <button id="toggle-change-password" class="w-full bg-brand-purple text-white font-bold py-2.5 px-4 rounded-lg hover:bg-opacity-90 transition" type="button">Alterar password</button>
+                  <form id="change-password-form" class="hidden space-y-3">
+                    <input type="password" id="current-password" placeholder="Password atual" class="w-full px-4 py-3 bg-brand-gray-900 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple" autocomplete="current-password">
+                    <input type="password" id="new-password" placeholder="Nova password" class="w-full px-4 py-3 bg-brand-gray-900 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple" autocomplete="new-password">
+                    <button type="submit" class="w-full bg-brand-purple text-white font-bold py-2.5 px-4 rounded-lg">Guardar password</button>
+                  </form>
+
+                  <hr class="border-brand-gray-700 my-4">
+
+                  <button id="delete-account-btn" class="w-full bg-red-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-red-700 transition" type="button">Apagar conta</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="fixed bottom-0 left-0 right-0 h-20 bg-brand-gray-800 border-t border-brand-gray-700 flex justify-around items-center z-20">
+      <button data-view="0" class="nav-btn flex flex-col items-center justify-center text-brand-gray-200 nav-active" type="button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
+        <span class="text-xs mt-1">Mapa</span>
+      </button>
+
+      <button data-view="1" class="nav-btn flex flex-col items-center justify-center text-brand-gray-200" type="button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-compass" viewBox="0 0 16 16"><path d="M8 16.016a7.5 7.5 0 0 0 1.962-14.74A1 1 0 0 0 9 0H7a1 1 0 0 0-.962 1.276A7.5 7.5 0 0 0 8 16.016zm6.5-7.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0z"/><path d="m6.94 7.44 4.95-2.83-2.83 4.95-4.949 2.83 2.828-4.95z"/></svg>
+        <span class="text-xs mt-1">Eventos</span>
+      </button>
+
+      <button data-view="2" class="nav-btn flex flex-col items-center justify-center text-brand-gray-200" type="button">
+        <!-- Novo ícone Social (grupo) -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
+          <circle cx="22" cy="22" r="8"></circle>
+          <circle cx="46" cy="22" r="8"></circle>
+          <path d="M6 46c0-9 9-16 18-16s18 7 18 16v2H6z"></path>
+          <path d="M28 48c0-7 7-12 14-12s14 5 14 12v2H28z"></path>
+        </svg>
+        <span class="text-xs mt-1">Social</span>
+        <span id="badge-social" class="badge">0</span>
+      </button>
+
+      <button data-view="3" class="nav-btn flex flex-col items-center justify-center text-brand-gray-200" type="button">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+             stroke-width="1.5" stroke="currentColor" class="size-6">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9 3.75H6.912a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H15M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859M12 3v8.25m0 0-3-3m3 3 3-3"/>
+        </svg>
+        <span class="text-xs mt-1">Chat</span>
+        <span id="badge-chat" class="badge">0</span>
+      </button>
+
+      <button data-view="4" class="nav-btn flex flex-col items-center justify-center text-brand-gray-200" type="button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/><path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/></svg>
+        <span class="text-xs mt-1">Conta</span>
+      </button>
+    </footer>
+  </div>
+
+  <!-- Página Criar Evento -->
+  <div id="create-event-page" class="hidden absolute inset-0 bg-brand-gray-900 z-50 overflow-y-auto">
+    <div class="p-4 pb-24">
+      <header class="flex items-center justify-between mb-6">
+        <button id="back-from-create-btn" class="p-2" type="button">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/></svg>
+        </button>
+        <h1 id="create-edit-title" class="text-xl font-bold text-white">Criar Evento</h1>
+        <div class="w-10"></div>
+      </header>
+
+      <form id="create-event-form">
+        <div class="space-y-8">
+          <div>
+            <h2 class="text-lg font-semibold text-white mb-2">Detalhes do Evento</h2>
+            <div class="space-y-4 bg-brand-gray-800 p-4 rounded-lg">
+              <input type="text" id="event-title" placeholder="Título" required class="w-full px-4 py-3 bg-brand-gray-900 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple">
+              <textarea id="event-description" placeholder="Descrição (opcional)" rows="2" class="w-full px-4 py-3 bg-brand-gray-900 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple"></textarea>
+              <div class="w-full">
+                <input type="datetime-local" id="event-datetime" required class="w-full px-4 py-3 bg-brand-gray-900 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple" style="color-scheme: dark;">
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h2 class="text-lg font-semibold text-white mb-2">Percurso</h2>
+            <div class="space-y-4 bg-brand-gray-800 p-4 rounded-lg">
+              <div id="page-route-summary" class="text-center text-brand-gray-200">Defina um percurso</div>
+              <div class="p-4 rounded-lg border border-brand-purple relative">
+                <input type="text" id="event-start" placeholder="Ponto de Partida" required class="w-full bg-transparent border-none focus:outline-none">
+                <button type="button" id="event-use-location" class="absolute right-3 top-1/2 -translate-y-1/2 text-brand-purple" title="Usar localização atual">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
+                </button>
+              </div>
+
+              <div id="page-stops-container"></div>
+              <button type="button" id="page-add-stop-btn" class="w-full flex items-center justify-center gap-2 text-brand-purple py-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
+                Adicionar paragem
+              </button>
+
+              <div class="p-4 rounded-lg border border-brand-purple">
+                <input type="text" id="event-end" placeholder="Destino" required class="w-full bg-transparent border-none focus:outline-none">
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h2 class="text-lg font-semibold text-white mb-2">Privacidade</h2>
+            <div class="flex items-center justify-between bg-brand-gray-800 p-4 rounded-lg">
+              <label for="event-public" class="font-medium text-brand-gray-200">Evento Público</label>
+              <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                <input type="checkbox" name="toggle" id="event-public" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                <label for="event-public" class="toggle-label block overflow-hidden h-6 rounded-full bg-brand-gray-700 cursor-pointer"></label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="page-trip-error" class="mt-4 text-center text-red-500 text-sm font-medium"></div>
+
+        <div class="fixed bottom-0 left-0 right-0 p-4 bg-brand-gray-900 border-t border-brand-gray-700">
+          <button id="submit-event-btn" type="submit" class="w-full bg-brand-purple text-white font-bold py-3 px-4 rounded-lg">Criar Evento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Veículo -->
+  <div id="vehicle-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div class="modal-content bg-brand-gray-800 p-6 rounded-2xl w-full max-w-sm">
+      <h2 class="text-lg font-semibold text-white mb-4">A Minha Garagem</h2>
+      <form id="vehicle-form" class="space-y-4">
+        <select id="modal-vehicle-make" required class="w-full px-4 py-3 bg-brand-gray-900 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple" style="color-scheme: dark;"></select>
+        <select id="modal-vehicle-model" required class="w-full px-4 py-3 bg-brand-gray-900 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple" style="color-scheme: dark;"></select>
+        <input type="text" id="modal-vehicle-plate" placeholder="Matrícula" required class="w-full px-4 py-3 bg-brand-gray-900 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple">
+        <div class="flex items-center gap-4">
+          <label for="modal-vehicle-color" class="text-sm font-medium text-brand-gray-200">Cor:</label>
+          <input type="color" id="modal-vehicle-color" value="#1C1B22" class="w-full h-10 bg-brand-gray-900 border-none rounded-lg cursor-pointer">
+        </div>
+        <div class="flex gap-4 pt-4">
+          <button type="button" id="close-vehicle-modal-btn" class="w-full bg-brand-gray-700 text-white font-bold py-2.5 px-4 rounded-lg">Cancelar</button>
+          <button type="submit" class="w-full bg-brand-purple text-white font-bold py-2.5 px-4 rounded-lg">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Filtros -->
+  <div id="filter-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div class="modal-content bg-brand-gray-800 p-6 rounded-2xl w-full max-w-sm">
+      <h2 class="text-lg font-semibold text-white mb-4">Filtrar Eventos</h2>
+      <div class="space-y-4">
+        <div>
+          <h3 class="font-medium text-brand-gray-200 mb-2">Visibilidade</h3>
+          <label class="flex items-center"><input type="checkbox" data-filter="meus" class="filter-checkbox h-4 w-4 rounded bg-brand-gray-900 border-brand-gray-700 text-brand-purple focus:ring-brand-purple" checked> <span class="ml-2">Meus Eventos</span></label>
+          <label class="flex items-center"><input type="checkbox" data-filter="publicos" class="filter-checkbox h-4 w-4 rounded bg-brand-gray-900 border-brand-gray-700 text-brand-purple focus:ring-brand-purple" checked> <span class="ml-2">Públicos</span></label>
+        </div>
+        <div>
+          <h3 class="font-medium text-brand-gray-200 mb-2">Estado</h3>
+          <label class="flex items-center"><input type="checkbox" data-filter="upcoming" class="filter-checkbox h-4 w-4 rounded bg-brand-gray-900 border-brand-gray-700 text-brand-purple focus:ring-brand-purple" checked> <span class="ml-2 text-brand-gray-200">Próximos</span></label>
+          <label class="flex items-center"><input type="checkbox" data-filter="active" class="filter-checkbox h-4 w-4 rounded bg-brand-gray-900 border-brand-gray-700 text-brand-purple focus:ring-brand-purple" checked> <span class="ml-2 text-brand-gray-200">Ativos</span></label>
+          <label class="flex items-center"><input type="checkbox" data-filter="past" class="filter-checkbox h-4 w-4 rounded bg-brand-gray-900 border-brand-gray-700 text-brand-purple focus:ring-brand-purple" checked> <span class="ml-2 text-brand-gray-200">Terminados</span></label>
+        </div>
+      </div>
+      <button id="apply-filters-btn" class="mt-6 w-full bg-brand-purple text-white font-bold py-2.5 px-4 rounded-lg">Aplicar Filtros</button>
+    </div>
+  </div>
+
+  <!-- Modal: Convidar Amigos para Evento -->
+  <div id="invite-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div class="modal-content bg-brand-gray-800 p-6 rounded-2xl w-full max-w-md">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-lg font-semibold text-white">Convidar amigos</h2>
+        <button id="invite-close" class="text-brand-gray-200 hover:text-white" type="button">✕</button>
+      </div>
+      <input id="invite-search" type="text" placeholder="Pesquisar amigo..." class="w-full mb-3 px-3 py-2 bg-brand-gray-900 rounded focus:outline-none focus:ring-2 focus:ring-brand-purple">
+      <div id="invite-friends-list" class="max-h-72 overflow-y-auto space-y-2"></div>
+      <div class="mt-4 flex gap-2">
+        <button id="invite-submit" class="flex-1 bg-brand-purple text-white font-semibold py-2 rounded" type="button">Enviar convites</button>
+        <button id="invite-cancel" class="flex-1 bg-brand-gray-700 text-white font-semibold py-2 rounded" type="button">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Unfriend -->
+  <div id="unfriend-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div class="modal-content bg-brand-gray-800 p-6 rounded-2xl w-full max-w-sm">
+      <h2 class="text-lg font-semibold text-white mb-2">Remover amigo</h2>
+      <p id="unfriend-text" class="text-sm text-brand-gray-200 mb-4"></p>
+      <div class="flex gap-3">
+        <button id="unfriend-confirm" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded" type="button">Sim</button>
+        <button id="unfriend-cancel" class="flex-1 bg-brand-gray-700 text-white font-semibold py-2 rounded" type="button">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Janela Chat (estilo Instagram) -->
+  <div id="chat-convo-page" class="hidden absolute inset-0 bg-brand-gray-900 z-50 flex flex-col">
+    <div class="p-4 border-b border-brand-gray-700 flex items-center justify-between">
+      <button id="convo-back-btn" class="p-2" type="button" title="Voltar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/></svg>
+      </button>
+      <div class="flex items-center gap-3">
+        <img id="convo-avatar" class="w-8 h-8 rounded-full object-cover" src="" alt="">
+        <div id="convo-username" class="font-semibold"></div>
+      </div>
+      <div class="w-10"></div>
+    </div>
+    <div id="convo-messages" class="flex-1 overflow-y-auto p-3"></div>
+    <form id="convo-form" class="p-3 border-t border-brand-gray-700 flex gap-2">
+      <input id="convo-input" type="text" placeholder="Escreva uma mensagem..." class="flex-1 px-3 py-2 bg-brand-gray-900 rounded focus:outline-none focus:ring-2 focus:ring-brand-purple">
+      <button class="px-4 py-2 bg-brand-purple rounded font-semibold" type="submit">Enviar</button>
+    </form>
+  </div>
+
+  <!-- Janela Amigos (em Conta) -->
+  <div id="friends-page" class="hidden absolute inset-0 bg-brand-gray-900 z-50 flex flex-col">
+    <div class="p-4 border-b border-brand-gray-700 flex items-center justify-between">
+      <button id="friends-back-btn" class="p-2" type="button" title="Voltar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/></svg>
+      </button>
+      <h2 class="font-semibold">Amigos</h2>
+      <div class="w-10"></div>
+    </div>
+    <div id="friends-page-list" class="p-4 space-y-2 overflow-y-auto"></div>
+  </div>
+
+  <!-- Cropper da foto de perfil -->
+  <div id="cropper-modal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+    <div class="modal-content bg-brand-gray-800 p-6 rounded-2xl w-full max-w-md">
+      <h2 class="text-lg font-semibold text-white mb-4">Ajustar foto de perfil</h2>
+      <div class="crop-viewport">
+        <img id="cropper-image" alt="">
+      </div>
+      <input type="range" id="cropper-zoom" min="1" max="3" step="0.01" value="1" class="w-full mt-4">
+      <div class="flex gap-3 mt-4">
+        <button id="cropper-cancel" class="flex-1 bg-brand-gray-700 hover:bg-brand-gray-600 text-white font-semibold py-2 rounded" type="button">Cancelar</button>
+        <button id="cropper-save" class="flex-1 bg-brand-purple hover:bg-opacity-90 text-white font-semibold py-2 rounded" type="button">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Google Maps -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDPL6a9tPw8P20DZbh0T65Vo8JEwxPGmaw&callback=initMap&libraries=places,routes&v=weekly" async defer></script>
+
+<!-- Helpers imagem -->
+<script>
+function loadImageFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const url = (window.URL || window.webkitURL).createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { (window.URL || window.webkitURL).revokeObjectURL(url); resolve(img); };
+    img.onerror = (e) => { (window.URL || window.webkitURL).revokeObjectURL(url); reject(e); };
+    img.src = url;
+  });
+}
+async function fileToJpegDataUrl(file, maxSize = 1280, quality = 0.9) {
+  try {
+    const img = await loadImageFromFile(file);
+    const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+    const scale = Math.min(1, maxSize / Math.max(iw, ih));
+    const w = Math.max(1, Math.round(iw * scale));
+    const h = Math.max(1, Math.round(ih * scale));
+    const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
+    return canvas.toDataURL('image/jpeg', quality);
+  } catch (e1) {
+    return await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); });
+  }
+}
+</script>
+
+<script>
+/* =========================
+   Globais
+========================= */
+let map, directionsService;
+let routeMarkers = [], routePolylines = [];
+let currentEventData = {};
+let editingTripId = null;
+let liveWatchId = null;
+let userMarker = null;
+let userPulse = null;
+let followingUser = true;
+let CURRENT_USER = null;
+let HIDDEN_THREADS = new Set(JSON.parse(localStorage.getItem('hiddenThreads') || '[]'));
+
+
+let FRIENDS_CACHE = [];
+let OUTGOING_CACHE = [];
+let INCOMING_CACHE = [];
+let ALL_USERS_CACHE = [];
+let CHAT_THREADS = [];
+
+let ACTIVE_CHAT_FRIEND = null;
+let CHAT_POLL = null;
+
+const badgeSocial = () => document.getElementById('badge-social');
+const badgeChat = () => document.getElementById('badge-chat');
+
+/* =========================
+   Manifest fallback
+========================= */
+(function ensureManifest(){
+  const link = document.getElementById('app-manifest');
+  fetch(link.href, { method:'HEAD' }).catch(() => {
+    const manifest = {
+      name: "CrewGPS",
+      short_name: "CrewGPS",
+      theme_color: "#6D28D9",
+      background_color: "#111014",
+      display: "standalone",
+      start_url: "/",
+      icons: [
+        { src: "/assets/Logo.png", sizes: "192x192", type: "image/png", purpose: "any" },
+        { src: "/assets/Logo.png", sizes: "512x512", type: "image/png", purpose: "any" }
+      ]
+    };
+    const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+    link.href = URL.createObjectURL(blob);
+  });
+})();
+
+/* ========================= MAPS (igual) ========================= */
+function setupAutocomplete(input, bounds) {
+  if (window.google && google.maps && google.maps.places && input) {
+    const autocomplete = new google.maps.places.Autocomplete(input, { bounds, strictBounds: true });
+    autocomplete.addListener('place_changed', () => calculateAndDisplayRoute());
+  }
+}
+function clearMapElements() { routeMarkers.forEach(m => m.setMap(null)); routeMarkers = []; routePolylines.forEach(p => p.setMap(null)); routePolylines = []; }
+function calculateAndDisplayRoute() {
+  const pageStopsContainer = document.getElementById('page-stops-container');
+  const startVal = document.getElementById('event-start').value;
+  const endVal = document.getElementById('event-end').value;
+  if (!startVal || !endVal) return;
+  const waypoints = Array.from(pageStopsContainer.querySelectorAll('input')).map(i=>i.value).filter(Boolean).map(v => ({ location:v, stopover:true }));
+  let origin;
+  if (startVal.trim().toLowerCase().startsWith('localização atual') && currentEventData.currentLocation) {
+    origin = new google.maps.LatLng(currentEventData.currentLocation.lat, currentEventData.currentLocation.lng);
+  } else origin = startVal;
+
+  directionsService.route({ origin, destination:endVal, waypoints, travelMode: google.maps.TravelMode.DRIVING }, (response, status) => {
+    if (status === 'OK') {
+      const route = response.routes[0];
+      const totalDistance = route.legs.reduce((a,l)=>a+l.distance.value,0);
+      const totalDuration = route.legs.reduce((a,l)=>a+l.duration.value,0);
+      const distanceKm = (totalDistance / 1000).toFixed(1);
+      const hours = Math.floor(totalDuration / 3600);
+      const minutes = Math.floor((totalDuration % 3600) / 60);
+      currentEventData.durationText = `${hours}h ${minutes}min`;
+      currentEventData.distanceText = `${distanceKm} km`;
+      const summaryRouteText = `${route.legs[0].start_address.split(',')[0]} → ${route.legs[route.legs.length - 1].end_address.split(',')[0]}`;
+      document.getElementById('page-route-summary').textContent = summaryRouteText;
+    }
+  });
+}
+function createPulseDOM(){ const dot=document.createElement('div'); dot.style.width='14px'; dot.style.height='14px'; dot.style.borderRadius='50%'; dot.style.background='#6D28D9'; dot.style.boxShadow='0 0 0 2px #fff'; dot.style.position='relative'; const ring=document.createElement('div'); ring.style.position='absolute'; ring.style.left='50%'; ring.style.top='50%'; ring.style.width='14px'; ring.style.height='14px'; ring.style.transform='translate(-50%,-50%)'; ring.style.borderRadius='50%'; ring.style.background='rgba(109,40,217,.35)'; ring.style.animation='pulse 1.8s ease-out infinite'; dot.appendChild(ring); return dot; }
+function addUserPulseMarker(latLng){ if (google.maps.marker && google.maps.marker.AdvancedMarkerElement) { if (userPulse) userPulse.map=null; const dom=createPulseDOM(); userPulse=new google.maps.marker.AdvancedMarkerElement({ position:latLng, content:dom, map }); } else { if (!userMarker) { userMarker = new google.maps.Marker({ position:latLng, map, title:'A minha localização', icon:{ path:google.maps.SymbolPath.CIRCLE, scale:6, fillColor:'#6D28D9', fillOpacity:1, strokeColor:'#fff', strokeWeight:2 } }); google.maps.event.addListener(map, 'dragstart', ()=>{ followingUser=false; }); } else userMarker.setPosition(latLng);
+  if (!userPulse) userPulse = new google.maps.Circle({ strokeColor:'rgba(109,40,217,.25)', strokeOpacity:0.6, strokeWeight:1, fillColor:'rgba(109,40,217,.15)', fillOpacity:0.25, map, center:latLng, radius:25 }); else userPulse.setCenter(latLng); } }
+function moveUserPulse(latLng){ if (userPulse && userPulse.position) userPulse.position = latLng; else if (userPulse && userPulse.setCenter) userPulse.setCenter(latLng); if (userMarker) userMarker.setPosition(latLng); }
+function startLiveTracking(){ if (!navigator.geolocation||liveWatchId) return; liveWatchId = navigator.geolocation.watchPosition(pos=>{ const { latitude, longitude } = pos.coords; currentEventData.currentLocation = { lat:latitude, lng:longitude }; const ll=new google.maps.LatLng(latitude, longitude); if (!userMarker && !(google.maps.marker && google.maps.marker.AdvancedMarkerElement)) { userMarker = new google.maps.Marker({ position:ll, map, title:'A minha localização', icon:{ path:google.maps.SymbolPath.CIRCLE, scale:6, fillColor:'#6D28D9', fillOpacity:1, strokeColor:'#fff', strokeWeight:2 } }); google.maps.event.addListener(map, 'dragstart', ()=>{ followingUser=false; }); } if (!userPulse) addUserPulseMarker(ll); else moveUserPulse(ll); if (followingUser) map.setCenter(ll); }, ()=>{}, { enableHighAccuracy:true, maximumAge:1000, timeout:5000 }); }
+window.__actualInitMap = function() {
+  const mapStyles=[{elementType:"geometry",stylers:[{color:"#1C1B22"}]},{elementType:"labels.text.fill",stylers:[{color:"#E4E4E7"}]},{elementType:"labels.text.stroke",stylers:[{visibility:"off"}]},{featureType:"administrative",elementType:"geometry.stroke",stylers:[{color:"#32323D"}]},{featureType:"poi",stylers:[{visibility:"off"}]},{featureType:"road",elementType:"geometry",stylers:[{color:"#32323D"}]},{featureType:"road.highway",elementType:"geometry",stylers:[{color:"#FFFFFF"}]},{featureType:"road.highway",elementType:"geometry.stroke",stylers:[{color:"#1C1B22"}]},{featureType:"water",elementType:"geometry",stylers:[{color:"#1f1f2e"}]}];
+  map=new google.maps.Map(document.getElementById("map"),{center:{lat:32.6669,lng:-16.9241},zoom:12,styles:mapStyles,disableDefaultUI:true,zoomControl:false,streetViewControl:false,fullscreenControl:false,mapTypeControl:false,keyboardShortcuts:false,clickableIcons:false,gestureHandling:'greedy'});
+  directionsService=new google.maps.DirectionsService();
+  const madeiraBounds=new google.maps.LatLngBounds(new google.maps.LatLng(32.5,-17.3), new google.maps.LatLng(33.15,-16.25));
+  setupAutocomplete(document.getElementById('event-start'), madeiraBounds);
+  setupAutocomplete(document.getElementById('event-end'), madeiraBounds);
+  if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(position=>{ const geocoder=new google.maps.Geocoder(); const loc={ lat:position.coords.latitude, lng:position.coords.longitude }; currentEventData.currentLocation=loc; map.setCenter(loc); geocoder.geocode({ location:loc }, (results, status)=>{ if (status==='OK'&&results[0]) document.getElementById('event-start').value='Localização atual'; }); }); }
+  startLiveTracking();
+  if (window.__initMapPending) window.__initMapPending=false;
+};
+
+/* =========================
+   Swipe nas tabs internas
+========================= */
+function enableSwipeTabs(containerEl, tabButtonsNodeList) {
+  let startX = 0, startY = 0, isMoving = false; const threshold = 50;
+  const tabButtons = Array.from(tabButtonsNodeList);
+  const currentIndex = () => tabButtons.findIndex(btn => btn.classList.contains('text-brand-purple'));
+  containerEl.addEventListener('touchstart', (e)=>{ if (!e.touches || e.touches.length!==1) return; const t=e.touches[0]; startX=t.clientX; startY=t.clientY; isMoving=true; }, {passive:true});
+  containerEl.addEventListener('touchmove', (e)=>{ if(!isMoving) return; const dx=e.touches[0].clientX-startX; const dy=e.touches[0].clientY-startY; if (Math.abs(dx)>Math.abs(dy) && Math.abs(dx)>12) e.preventDefault(); }, {passive:false});
+  containerEl.addEventListener('touchend', (e)=>{ if(!isMoving) return; isMoving=false; const dx=(e.changedTouches && e.changedTouches[0].clientX-startX) || 0; const dy=(e.changedTouches && e.changedTouches[0].clientY-startY) || 0; if (Math.abs(dx)>Math.abs(dy) && Math.abs(dx)>threshold) { const idx=currentIndex(); const next = dx<0 ? Math.min(idx+1, tabButtons.length-1) : Math.max(idx-1, 0); if (next!==idx) tabButtons[next].click(); } }, {passive:true});
+}
+
+/* ========================= Pull-to-refresh ========================= */
+function enablePTR(scrollEl, indicatorEl, onRefresh) {
+  let startY = 0, pulling = false, currentH = 0, refreshing = false;
+  const maxH = 80, triggerH = 56;
+  function setH(h){ currentH = Math.max(0, Math.min(maxH, h)); indicatorEl.style.height=currentH+'px'; indicatorEl.style.opacity=String(currentH/maxH); }
+  scrollEl.addEventListener('touchstart', (e)=>{ if (scrollEl.scrollTop===0 && e.touches.length===1 && !refreshing){ pulling=true; startY=e.touches[0].clientY; } }, {passive:true});
+  scrollEl.addEventListener('touchmove', (e)=>{ if(!pulling) return; const dy=e.touches[0].clientY-startY; if (dy>0){ e.preventDefault(); setH(dy*0.5); } else setH(0); }, {passive:false});
+  async function finish(){ refreshing=true; setH(triggerH); try{ await onRefresh(); }catch{} setTimeout(()=>{ indicatorEl.style.transition='height .25s ease, opacity .25s ease'; setH(0); setTimeout(()=>{ indicatorEl.style.transition=''; refreshing=false; pulling=false; },260); },350); }
+  scrollEl.addEventListener('touchend', ()=>{ if(!pulling) return; if(currentH>=triggerH) finish(); else setH(0); }, {passive:true});
+}
+
+/* =========================
+   App
+========================= */
+document.addEventListener('DOMContentLoaded', () => {
+  // Remover a aba "Amigos" do Social (já existe em Conta)
+const friendsTabBtn = document.querySelector('.social-tab-btn[data-tab="friends"]');
+document.getElementById('friends-content')?.remove();
+friendsTabBtn?.remove();
+// Recolher novamente os botões de tabs (porque removemos um)
+
+  const API_URL = window.location.origin;
+  // [CHAT] Marcar conversa como lida
+async function markThreadRead(userId){
+  const token = localStorage.getItem('token');
+  if (!token || !userId) return;
+  try{
+    await fetch(`${API_URL}/api/chat/${userId}/read`, {
+      method:'POST',
+      headers:{ 'x-auth-token': token }
+    });
+  }catch{}
+}
+
+
+  const authSection = document.getElementById('auth-section');
+  const dashboardSection = document.getElementById('dashboard-section');
+  const createEventPage = document.getElementById('create-event-page');
+
+  const loginForm = document.getElementById('login-form');
+  const registerForm = document.getElementById('register-form');
+
+  const showForgotPasswordView = document.getElementById('show-forgot-password-view');
+  const forgotForm = document.getElementById('forgot-password-form');
+  const resetForm = document.getElementById('reset-password-form');
+
+  const welcomeMessage = document.getElementById('welcome-message');
+  const logoutBtn = document.getElementById('logout-btn');
+  const authError = document.getElementById('auth-feedback');
+
+  const viewContainer = document.querySelector('.view-container');
+  const navButtons = document.querySelectorAll('.nav-btn');
+  const VIEWS_COUNT = document.querySelectorAll('.view').length;
+
+  const createEventFab = document.getElementById('create-event-fab');
+  const backFromCreateBtn = document.getElementById('back-from-create-btn');
+  const createEventForm = document.getElementById('create-event-form');
+
+  let socialTabButtons = document.querySelectorAll('.social-tab-btn');
+  const eventsTabButtons = document.querySelectorAll('.event-tab-btn');
+
+  const publicEventsContent = document.getElementById('public-events-content');
+  const myEventsContent = document.getElementById('my-events-content');
+
+  enableSwipeTabs(document.getElementById('events-view'), eventsTabButtons);
+  enableSwipeTabs(document.getElementById('social-view'), socialTabButtons);
+
+  // Garage
+  const vehicleModal = document.getElementById('vehicle-modal');
+  const closeVehicleModalBtn = document.getElementById('close-vehicle-modal-btn');
+  const vehicleForm = document.getElementById('vehicle-form');
+  const addVehicleBtn = document.getElementById('add-vehicle-btn');
+  const garageContainer = document.getElementById('garage-container');
+  const makeSelect = document.getElementById('modal-vehicle-make');
+  const modelSelect = document.getElementById('modal-vehicle-model');
+  let userGarage = [];
+  let editingVehicleIndex = -1;
+
+  // Segurança
+  const toggleChangePassword = document.getElementById('toggle-change-password');
+  const changePasswordForm = document.getElementById('change-password-form');
+  const deleteAccountBtn = document.getElementById('delete-account-btn');
+
+  // Social
+  const invitesList = document.getElementById('invites-content');
+  const friendsList = document.getElementById('friends-list');
+  const userSearchInput = document.getElementById('user-search-input');
+  const userSearchResults = document.getElementById('user-search-results');
+
+  // CHAT lista (IG)
+  const chatUsersList = document.getElementById('chat-users-list');const chatSearchInput   = document.getElementById('chat-search-input');
+const chatSearchResults = document.getElementById('chat-search-results');
+
+function renderChatSearch(list){
+  chatSearchResults.innerHTML = '';
+  if (!list.length) return;
+  list.forEach(u=>{
+    const row = document.createElement('button');
+    row.className = 'chat-row w-full text-left';
+    const avatar = u.profilePicture || `https://placehold.co/44x44/1C1B22/E4E4E7?text=${(u.nome?.[0]||'U')}`;
+    row.innerHTML = `
+      <div class="flex-1 min-w-0">
+        <div class="primary truncate">${u.nome || 'Utilizador'}</div>
+        <div class="secondary">Abrir conversa</div>
+      </div>
+      <div class="middle-dot"><div>&nbsp;</div><div class="ago"></div></div>
+      <img src="${avatar}" class="w-11 h-11 rounded-full object-cover" alt="">
+    `;
+    row.addEventListener('click', ()=>{ chatSearchResults.innerHTML=''; chatSearchInput.value=''; openChatWith(u); });
+    chatSearchResults.appendChild(row);
+  });
+}
+let chatSearchTimer = null;
+chatSearchInput?.addEventListener('input', ()=>{
+  clearTimeout(chatSearchTimer);
+  chatSearchTimer = setTimeout(()=>{
+    const q = (chatSearchInput.value||'').toLowerCase().trim();
+    if (!q) { chatSearchResults.innerHTML=''; return; }
+    const res = FRIENDS_CACHE.filter(f => (f.nome||'').toLowerCase().includes(q));
+    renderChatSearch(res.slice(0,20));
+  }, 180);
+});
+
+
+  // Chat Conversa (overlay)
+  const convoPage = document.getElementById('chat-convo-page');
+  const convoBackBtn = document.getElementById('convo-back-btn');
+  const convoAvatar = document.getElementById('convo-avatar');
+  const convoUsername = document.getElementById('convo-username');
+  const convoMessages = document.getElementById('convo-messages');
+  const convoForm = document.getElementById('convo-form');
+  const convoInput = document.getElementById('convo-input');
+
+  // Friends Page (em Conta)
+  const openFriendsPageBtn = document.getElementById('open-friends-page');
+  const friendsPage = document.getElementById('friends-page');
+  const friendsBackBtn = document.getElementById('friends-back-btn');
+  const friendsPageList = document.getElementById('friends-page-list');
+
+  // Groups
+  const myGroupsList = document.getElementById('my-groups-list');
+  const refreshGroupsBtn = document.getElementById('refresh-groups');
+  const createGroupForm = document.getElementById('create-group-form');
+  const groupNameInput = document.getElementById('group-name');
+  const groupDescInput = document.getElementById('group-desc');
+  const groupSearchInput = document.getElementById('group-search');
+  const groupSearchBtn = document.getElementById('group-search-btn');
+  const groupSearchResults = document.getElementById('group-search-results');
+  const groupSelected = document.getElementById('group-selected');
+
+  // Invite modal
+  const inviteModal = document.getElementById('invite-modal');
+  const inviteClose = document.getElementById('invite-close');
+  const inviteCancel = document.getElementById('invite-cancel');
+  const inviteSearch = document.getElementById('invite-search');
+  const inviteFriendsList = document.getElementById('invite-friends-list');
+  const inviteSubmit = document.getElementById('invite-submit');
+  let INVITE_TRIP_ID = null;
+  let INVITE_SELECTED = new Set();
+
+  // Unfriend modal
+  const unfriendModal = document.getElementById('unfriend-modal');
+  const unfriendText = document.getElementById('unfriend-text');
+  const unfriendConfirm = document.getElementById('unfriend-confirm');
+  const unfriendCancel = document.getElementById('unfriend-cancel');
+  let UNFRIEND_TARGET = null;
+
+  // Cropper
+  const cropperModal = document.getElementById('cropper-modal');
+  const cropperImage = document.getElementById('cropper-image');
+  const cropperZoom = document.getElementById('cropper-zoom');
+  const cropperCancel = document.getElementById('cropper-cancel');
+  const cropperSave = document.getElementById('cropper-save');
+  let cropState = { dragging:false, startX:0, startY:0, offsetX:0, offsetY:0, zoom:1, img:null };
+
+  /* ===== Helpers ===== */
+  function openModal(el){ el.classList.remove('hidden'); el.classList.add('modal-enter','modal-enter-to'); }
+  function closeModal(el){ el.classList.remove('modal-enter-to'); setTimeout(()=> el.classList.add('hidden'), 180); }
+  function timeAgo(ts){
+    const t = typeof ts==='number' ? ts : Date.parse(ts);
+    if (!t || isNaN(t)) return '';
+    const s = Math.floor((Date.now()-t)/1000);
+    if (s < 60) return `${s}s`;
+    const m = Math.floor(s/60); if (m < 60) return `${m}m`;
+    const h = Math.floor(m/60); if (h < 24) return `${h}h`;
+    const d = Math.floor(h/24); return `${d}d`;
+  }
+  function setBadge(el, count){ const n = Math.max(0, Number(count)||0); if (n<=0){ el.classList.remove('show'); return; } el.textContent = n>5 ? '5+' : String(n); el.classList.add('show'); }
+
+  /* ===== Navegação (sem swipe global) ===== */
+  navButtons.forEach(button => button.addEventListener('click', () => {
+    const viewIndex = Number(button.dataset.view || 0);
+    viewContainer.style.transform = `translateX(-${viewIndex * (100 / VIEWS_COUNT)}%)`;
+    navButtons.forEach(btn => btn.classList.remove('nav-active'));
+    button.classList.add('nav-active');
+  }));
+
+  /* ===== Abas Social ===== */
+  socialTabButtons.forEach(button => {
+    button.addEventListener('click', async () => {
+      const tab = button.dataset.tab;
+      socialTabButtons.forEach(btn => { btn.classList.remove('text-brand-purple','border-brand-purple'); btn.classList.add('text-brand-gray-200','border-transparent','hover:text-white','hover:border-white'); });
+      button.classList.add('text-brand-purple','border-brand-purple');
+      button.classList.remove('text-brand-gray-200','border-transparent','hover:text-white','hover:border-white');
+      ['search','invites','friends','groups'].forEach(id => document.getElementById(`${id}-content`)?.classList.add('hidden'));
+      document.getElementById(`${tab}-content`)?.classList.remove('hidden');
+      if (tab === 'invites') await fetchIncomingInvites();
+      if (tab === 'friends') { await refreshFriends(); renderFriendsList(); }
+      if (tab === 'groups') { await Promise.all([fetchMyGroups(), searchGroups(groupSearchInput.value||'')]); }
+    });
+  });
+
+  /* ===== Abas Eventos ===== */
+  eventsTabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const tab = button.dataset.tab;
+      eventsTabButtons.forEach(btn => { btn.classList.remove('text-brand-purple','border-brand-purple'); btn.classList.add('text-brand-gray-200','border-transparent','hover:text-white','hover:border-white'); });
+      button.classList.add('text-brand-purple','border-brand-purple');
+      button.classList.remove('text-brand-gray-200','border-transparent','hover:text-white','hover:border-white');
+      document.getElementById('public-events-content')?.classList.add('hidden');
+      document.getElementById('my-events-content')?.classList.add('hidden');
+      document.getElementById(`${tab}-content`)?.classList.remove('hidden');
+    });
+  });
+
+  /* ===== Auth views ===== */
+  document.getElementById('show-register-view').addEventListener('click', (e)=>{ e.preventDefault(); document.getElementById('login-view').classList.add('hidden'); document.getElementById('register-view').classList.remove('hidden'); authError.textContent=''; });
+  document.querySelectorAll('.show-login-view').forEach(link => link.addEventListener('click', (e)=>{
+    e.preventDefault();
+    ['register-view','forgot-password-view','reset-password-view'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    document.getElementById('login-view').classList.remove('hidden');
+    authError.textContent='';
+  }));
+  showForgotPasswordView.addEventListener('click', (e)=>{
+    e.preventDefault();
+    ['login-view','register-view','reset-password-view'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    document.getElementById('forgot-password-view').classList.remove('hidden');
+  });
+
+  /* ===== Segurança UI ===== */
+  document.addEventListener('click', (e) => {
+  if (e.target.closest('#toggle-change-password')) {
+    changePasswordForm.classList.toggle('hidden');
+    changePasswordForm.parentElement.classList.add('modal-enter');
+    requestAnimationFrame(() => changePasswordForm.parentElement.classList.add('modal-enter-to'));
+    setTimeout(() => changePasswordForm.parentElement.classList.remove('modal-enter','modal-enter-to'), 200);
+  }
+});
+
+  deleteAccountBtn.addEventListener('click', ()=>{
+    if (confirm('Tem a certeza que quer apagar a conta? Esta ação é irreversível.')) {
+      const token = localStorage.getItem('token');
+      fetch(`${API_URL}/api/users/me`, { method:'DELETE', headers:{'x-auth-token':token} })
+        .then(async res=>{ if(!res.ok) throw await res.json(); localStorage.removeItem('token'); location.reload(); })
+        .catch(()=> alert('Não foi possível apagar a conta.'));
+    }
+  });
+
+  /* ===== Password: forgot/reset ===== */
+  forgotForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const email = document.getElementById('forgot-email').value;
+    try {
+      const res = await fetch(`${API_URL}/api/password/forgot`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email }) });
+      const data = await res.json(); if (!res.ok) throw data;
+      alert('Email enviado. Verifique a sua caixa de correio.');
+      document.getElementById('reset-email').value = email;
+      document.getElementById('forgot-password-view').classList.add('hidden');
+      document.getElementById('reset-password-view').classList.remove('hidden');
+    } catch(err) {
+      alert(err?.msg || 'Não foi possível enviar email.');
+    }
+  });
+  resetForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const email = document.getElementById('reset-email').value;
+    const code = document.getElementById('reset-code').value;
+    const newPassword = document.getElementById('reset-password').value;
+    try {
+      const res = await fetch(`${API_URL}/api/password/reset`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, code, token: code, newPassword }) });
+      const data = await res.json(); if (!res.ok) throw data;
+      alert('Password redefinida. Faça login.');
+      document.getElementById('reset-password-view').classList.add('hidden');
+      document.getElementById('login-view').classList.remove('hidden');
+    } catch(err) {
+      alert(err?.msg || 'Não foi possível redefinir password.');
+    }
+  });
+
+  /* ===== Garagem ===== */
+  const carDataRaw = {"BMW":["Série 1","Série 2","Série 3","Série 4","Série 5","Série 7","Série 8","X1","X2","X3","X4","X5","X6","X7","i3","i4","iX","i8"],"Mercedes-Benz":["Classe A","Classe B","Classe C","Classe E","Classe S","CLA","CLS","GLA","GLB","GLC","GLE","GLS","EQC","EQE","EQS","AMG GT"],"Audi":["A1","A3","A4","A5","A6","A7","A8","Q2","Q3","Q4","Q5","Q7","Q8","e-tron"],"Volkswagen":["Polo","T-Cross","Taigo","T-Roc","Golf","Golf Variant","Passat","Tiguan","Tiguan Allspace","Touareg","Arteon","ID.3","ID.4","ID.5","ID.7"],"Ford":["Ka","Fiesta","Focus","Puma","Kuga","EcoSport","Mustang","Explorer","Transit"],"Toyota":["Aygo","Yaris","GR Yaris","Corolla","C-HR","RAV4","Supra","Prius"],"Honda":["Jazz","Civic","HR-V","CR-V","e","NSX"],"Renault":["Clio","Captur","Megane","Kadjar","Scénic","Talisman","Espace","Arkna","Kwid","Zoe"],"Peugeot":["108","208","e-208","2008","e-2008","3008","5008","308","508","Rifter"],"Citroën":["C1","C3","C3 Aircross","C4","C4 Cactus","C5 Aircross","C5 X","Ami","ë-C4"],"Nissan":["Micra","Juke","Qashqai","X-Trail","Leaf","Ariya"],"Hyundai":["i10","i20","i30","Kona","Tucson","Santa Fe","Ioniq 5","Ioniq 6","Kona Electric"],"Kia":["Picanto","Rio","Ceed","Stonic","Sportage","Sorento","EV6","Niro"],"Mazda":["Mazda2","Mazda3","CX-30","CX-5","MX-30","MX-5"],"Skoda":["Fabia","Scala","Octavia","Karoq","Kodiaq","Enyaq"],"Seat":["Mii","Ibiza","Arona","Leon","Tarraco","Ateca"],"Jaguar":["XE","XF","F-Pace","E-Pace","I-Pace"],"Land Rover":["Range Rover","Range Rover Sport","Velar","Evoque","Discovery","Defender"],"Volvo":["XC40","XC60","XC90","S60","S90","V60"],"Tesla":["Model 3","Model Y","Model S","Model X"],"Porsche":["911","Cayenne","Macan","Panamera","Taycan"],"Ferrari":["488","F8 Tributo","SF90 Stradale","Roma","Portofino","F12","812 Superfast"],"Lamborghini":["Huracán","Aventador","Urus"],"Alfa Romeo":["Giulia","Stelvio","Tonale"],"Mitsubishi":["Space Star","ASX","Eclipse Cross","Outlander"],"Suzuki":["Swift","Ignis","Vitara","S-Cross"],"MG":["MG4","ZS EV","HS"],"Dacia":["Sandero","Logan","Duster","Jogger"],"Fiat":["500","Panda","Tipo","500X"],"Jeep":["Renegade","Compass","Wrangler"],"Mini":["Hatch","Clubman","Countryman"],"Opel":["Corsa","Astra","Crossland","Grandland","Mokka","Zafira"]};
+  const carData = {}; Object.keys(carDataRaw).sort((a,b)=>a.localeCompare(b,'pt')).forEach(m=>carData[m]=carDataRaw[m].slice().sort((a,b)=>a.localeCompare(b,'pt')));
+  function populateMakes(){ makeSelect.innerHTML='<option value="">Selecione a Marca</option>'; Object.keys(carData).forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;makeSelect.appendChild(o);});}
+  populateMakes();
+  makeSelect.addEventListener('change', ()=>{ const sel=makeSelect.value; modelSelect.innerHTML='<option value="">Selecione o Modelo</option>'; if(sel && carData[sel]) carData[sel].forEach(md=>{const o=document.createElement('option');o.value=md;o.textContent=md;modelSelect.appendChild(o);}); });
+
+  function getTextColorForBg(bg){ if(!bg) return '#F1F1F3'; const c=(bg[0]==='#')?bg.substring(1,7):bg; const r=parseInt(c.substring(0,2),16), g=parseInt(c.substring(2,4),16), b=parseInt(c.substring(4,6),16); return (((r*.299)+(g*.587)+(b*.114))>186)?'#111014':'#F1F1F3'; }
+  function renderGarage(){ garageContainer.innerHTML=''; userGarage.forEach((v,i)=>{ const card=document.createElement('div'); card.className='vehicle-card w-full p-4 rounded-lg shadow-lg relative cursor-pointer'; const bg=v.color||'#1C1B22'; card.style.backgroundColor=bg; card.style.color=getTextColorForBg(bg); card.dataset.index=i; card.innerHTML=`<div><p class="text-xs opacity-70">Marca</p><h3 class="text-lg font-bold">${v.make}</h3><p class="text-xs opacity-70 mt-2">Modelo</p><h4 class="text-md font-semibold">${v.model}</h4><p class="text-xs opacity-70 mt-2">Matrícula</p><h4 class="text-md font-semibold">${v.plate}</h4></div>`; garageContainer.appendChild(card); }); garageContainer.appendChild(addVehicleBtn); addVehicleBtn.classList.remove('hidden'); }
+
+  closeVehicleModalBtn.addEventListener('click', ()=> closeModal(vehicleModal));
+  addVehicleBtn.addEventListener('click', ()=> openModal(vehicleModal));
+  vehicleModal.addEventListener('click', e=>{ if(e.target===vehicleModal) closeModal(vehicleModal); });
+
+  /* ===== Invite modal ===== */
+  function openInviteModal(tripId){ INVITE_TRIP_ID=tripId; INVITE_SELECTED.clear(); inviteSearch.value=''; renderInviteList(FRIENDS_CACHE); openModal(inviteModal); }
+  function hideInviteModal(){ closeModal(inviteModal); }
+  document.getElementById('invite-close').addEventListener('click', hideInviteModal);
+  inviteCancel.addEventListener('click', hideInviteModal);
+  inviteModal.addEventListener('click', e=>{ if(e.target===inviteModal) hideInviteModal(); });
+  inviteSearch.addEventListener('input', ()=> {
+    const q=inviteSearch.value.toLowerCase();
+    const filtered = FRIENDS_CACHE.filter(f => (f.nome||'').toLowerCase().includes(q));
+    renderInviteList(filtered);
+  });
+  function renderInviteList(list){
+    inviteFriendsList.innerHTML='';
+    if(!list || list.length===0){ inviteFriendsList.innerHTML='<p class="text-sm text-brand-gray-200">Sem amigos.</p>'; return; }
+    list.forEach(f=>{
+      const row=document.createElement('label');
+      row.className='flex items-center justify-between bg-brand-gray-900 rounded px-3 py-2';
+      const checked = INVITE_SELECTED.has(f._id) ? 'checked' : '';
+      row.innerHTML=`<div class="flex items-center gap-3"><img src="${f.profilePicture || 'https://placehold.co/32x32/1C1B22/E4E4E7?text='+ (f.nome?.[0]||'U')}" class="w-8 h-8 rounded-full object-cover"><span class="text-sm">${f.nome}</span></div><input type="checkbox" data-id="${f._id}" ${checked} class="w-4 h-4">`;
+      inviteFriendsList.appendChild(row);
+    });
+  }
+  inviteFriendsList.addEventListener('change', e=>{
+    const cb = e.target.closest('input[type="checkbox"]'); if(!cb) return;
+    const id = cb.dataset.id;
+    if (cb.checked) INVITE_SELECTED.add(id); else INVITE_SELECTED.delete(id);
+  });
+  inviteSubmit.addEventListener('click', async ()=>{
+    const token = localStorage.getItem('token'); if (!token) return;
+    if (!INVITE_TRIP_ID || INVITE_SELECTED.size===0){ alert('Selecione pelo menos um amigo.'); return; }
+    try{
+      const res = await fetch(`${API_URL}/api/trips/${INVITE_TRIP_ID}/invite`, { method:'POST', headers:{'Content-Type':'application/json','x-auth-token':token}, body: JSON.stringify({ inviteeIds: Array.from(INVITE_SELECTED) }) });
+      const data = await res.json(); if(!res.ok) throw data;
+      alert('Convites enviados ✅'); hideInviteModal();
+    }catch(err){ alert(err?.msg || 'Erro a enviar convites.'); }
+  });
+
+  /* ===== Unfriend modal ===== */
+  function openUnfriendModal(friend){ UNFRIEND_TARGET = friend; unfriendText.textContent = `Quer deixar de ser amigo de ${friend.nome}?`; openModal(unfriendModal); }
+  function hideUnfriendModal(){ UNFRIEND_TARGET=null; closeModal(unfriendModal); }
+  unfriendCancel.addEventListener('click', hideUnfriendModal);
+  unfriendModal.addEventListener('click', e=>{ if(e.target===unfriendModal) hideUnfriendModal(); });
+  unfriendConfirm.addEventListener('click', async ()=>{
+    if(!UNFRIEND_TARGET) return;
+    const token=localStorage.getItem('token');
+    try{
+      const res=await fetch(`${API_URL}/api/friends/${UNFRIEND_TARGET._id}`, { method:'DELETE', headers:{'x-auth-token':token} });
+      const data=await res.json(); if(!res.ok) throw data;
+      hideUnfriendModal();
+      await refreshFriends();
+      renderFriendsList();
+      await searchUsers(userSearchInput.value);
+      await renderChatThreads(); // atualiza a lista de chats
+      await updateBadges();
+    }catch(err){ alert(err?.msg || 'Não foi possível remover amigo.'); }
+  });
+
+  /* ===== Criar/Editar Evento ===== */
+  function showCreateEventPage(trip=null){
+    createEventForm.reset(); editingTripId=null;
+    document.getElementById('create-edit-title').textContent='Criar Evento';
+    document.getElementById('submit-event-btn').textContent='Criar Evento';
+    if (trip){
+      editingTripId = trip._id;
+      document.getElementById('create-edit-title').textContent='Editar Evento';
+      document.getElementById('submit-event-btn').textContent='Guardar Alterações';
+      document.getElementById('event-title').value = trip.routeName || '';
+      document.getElementById('event-description').value = trip.description || '';
+      document.getElementById('event-datetime').value = new Date(trip.date).toISOString().slice(0,16);
+      document.getElementById('event-public').checked = !!trip.isPublic;
+      document.getElementById('event-start').value = trip.startLocation?.description || 'Localização atual';
+      document.getElementById('event-end').value = trip.endLocation?.description || '';
+    } else {
+      document.getElementById('event-start').value = 'Localização atual';
+    }
+    dashboardSection.classList.add('hidden');
+    createEventPage.classList.remove('hidden');
+  }
+  function hideCreateEventPage(){ createEventPage.classList.add('hidden'); dashboardSection.classList.remove('hidden'); createEventForm.reset(); }
+  document.getElementById('event-use-location').addEventListener('click', ()=>{
+    followingUser = true;
+    if (currentEventData.currentLocation) {
+      map.setCenter(new google.maps.LatLng(currentEventData.currentLocation.lat, currentEventData.currentLocation.lng));
+      document.getElementById('event-start').value = 'Localização atual';
+      calculateAndDisplayRoute();
+    }
+  });
+
+  const pageStopsContainer = document.getElementById('page-stops-container');
+  document.getElementById('page-add-stop-btn').addEventListener('click', ()=>{
+    const stopId=`page-stop-${pageStopsContainer.children.length}`;
+    const div=document.createElement('div');
+    div.className='p-4 rounded-lg border border-dashed border-brand-gray-700 relative';
+    div.innerHTML=`<input type="text" id="${stopId}" placeholder="Adicionar paragem" class="w-full bg-transparent border-none focus:outline-none"><button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 remove-stop-btn">×</button>`;
+    pageStopsContainer.appendChild(div);
+    const input=document.getElementById(stopId);
+    const madeiraBounds=new google.maps.LatLngBounds(new google.maps.LatLng(32.5,-17.3), new google.maps.LatLng(33.15,-16.25));
+    setupAutocomplete(input, madeiraBounds);
+    input.addEventListener('change', calculateAndDisplayRoute);
+  });
+  pageStopsContainer.addEventListener('click', e=>{ if(e.target.classList.contains('remove-stop-btn')){ e.target.parentElement.remove(); calculateAndDisplayRoute(); } });
+  ['event-start','event-end'].forEach(id => document.getElementById(id).addEventListener('change', calculateAndDisplayRoute));
+
+  createEventForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    const pageTripError = document.getElementById('page-trip-error');
+    pageTripError.textContent='';
+    const stops = Array.from(document.getElementById('page-stops-container').querySelectorAll('input')).map(input => ({ description: input.value }));
+    const tripData = {
+      routeName: document.getElementById('event-title').value,
+      startLocation: { description: document.getElementById('event-start').value },
+      endLocation:   { description: document.getElementById('event-end').value },
+      stops,
+      date: document.getElementById('event-datetime').value,
+      durationText: currentEventData.durationText,
+      distanceText: currentEventData.distanceText,
+      isPublic: document.getElementById('event-public').checked
+    };
+    try{
+      const method = editingTripId ? 'PUT' : 'POST';
+      const url = editingTripId ? `${API_URL}/api/trips/${editingTripId}` : `${API_URL}/api/trips`;
+      const res = await fetch(url, { method, headers:{'Content-Type':'application/json','x-auth-token':token}, body: JSON.stringify(tripData) });
+      const data = await res.json(); if (!res.ok) throw data;
+      hideCreateEventPage();
+      await Promise.all([fetchTrips(), fetchPublicTrips()]);
+      applyFilters();
+    }catch(err){
+      pageTripError.textContent = (err.errors ? err.errors.map(e=>e.msg).join(' ') : err.msg) || 'Ocorreu um erro ao guardar o evento.';
+    }
+  });
+
+  document.addEventListener('click', async (e)=>{
+    const del = e.target.closest('.delete-trip-btn');
+    if (del) {
+      const id = del.dataset.id;
+      const token = localStorage.getItem('token');
+      if (confirm('Tem a certeza de que quer apagar este evento?')) {
+        try {
+          const res = await fetch(`${API_URL}/api/trips/${id}`, { method:'DELETE', headers:{'x-auth-token':token} });
+          if (!res.ok) throw await res.json();
+          await Promise.all([fetchTrips(), fetchPublicTrips()]);
+          applyFilters();
+        } catch (err) { alert(err.msg || 'Não foi possível apagar o evento.'); }
+      }
+    }
+    const edit = e.target.closest('.edit-trip-btn');
+    if (edit) {
+      const id = edit.dataset.id;
+      const token = localStorage.getItem('token');
+      try {
+        const res = await fetch(`${API_URL}/api/trips/${id}`, { headers:{'x-auth-token':token} });
+        const trip = await res.json();
+        if (!res.ok) throw trip;
+        showCreateEventPage(trip);
+      } catch { alert('Não foi possível carregar os dados do evento para edição.'); }
+    }
+    const inviteBtn = e.target.closest('.invite-trip-btn');
+    if (inviteBtn) {
+      const tripId = inviteBtn.dataset.id;
+      await refreshFriends();
+      openInviteModal(tripId);
+    }
+  });
+
+  /* ===== Filtros ===== */
+  document.getElementById('filter-btn').addEventListener('click', ()=> openModal(document.getElementById('filter-modal')));
+  document.getElementById('filter-modal').addEventListener('click', e=>{ if(e.target.id==='filter-modal') closeModal(document.getElementById('filter-modal')); });
+  document.getElementById('apply-filters-btn').addEventListener('click', ()=>{ closeModal(document.getElementById('filter-modal')); applyFilters(); });
+  function applyFilters(){ const active = {}; document.querySelectorAll('.filter-checkbox').forEach(cb => active[cb.dataset.filter] = cb.checked); refilterList(publicEventsContent, true, active); refilterList(myEventsContent, false, active); }
+  function refilterList(container, isPublic, active){
+    const cards = container.querySelectorAll('[data-trip]');
+    cards.forEach(card=>{
+      const status = card.getAttribute('data-status');
+      const mine = card.getAttribute('data-mine') === 'true';
+      let visible = true;
+      if (mine && !active.meus) visible = false;
+      if (!mine && !active.publicos) visible = false;
+      if (!active[status]) visible = false;
+      card.style.display = visible ? '' : 'none';
+    });
+  }
+
+  /* ===== Auth ===== */
+const updateUI = async () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    dashboardSection.classList.add('hidden');
+    authSection.classList.remove('hidden');
+    return;
+  }
+
+  // tenta carregar o utilizador; se o token for inválido, pára aqui
+  const ok = await fetchUserData();
+  if (!ok) return;
+
+  // só depois de termos o utilizador é que chamamos o resto
+  await Promise.all([
+    refreshFriends(),
+    fetchIncomingInvites(),
+    fetchAllUsers(),
+    fetchChatThreads(),
+    fetchTrips(),
+    fetchPublicTrips(),
+    fetchMyGroups()
+  ]);
+
+  applyFilters();
+  await renderChatThreads();
+  await updateBadges();
+};
+
+
+
+  registerForm.addEventListener('submit', async (e)=>{
+    e.preventDefault(); authError.textContent='';
+    const body = { nome: document.getElementById('register-name').value, email: document.getElementById('register-email').value, password: document.getElementById('register-password').value };
+    try {
+      const res = await fetch(`${API_URL}/api/users/register`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      const data = await res.json(); if (!res.ok) throw data;
+      localStorage.setItem('token', data.token); await updateUI();
+    } catch(err) { authError.textContent = (err.errors ? err.errors.map(e=>e.msg).join(' ') : err.msg) || 'Ocorreu um erro no registo.'; }
+  });
+
+  loginForm.addEventListener('submit', async (e)=>{
+    e.preventDefault(); authError.textContent='';
+    const body = { email: document.getElementById('login-email').value, password: document.getElementById('login-password').value };
+    try {
+      const res = await fetch(`${API_URL}/api/users/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      const data = await res.json(); if (!res.ok) throw data;
+      localStorage.setItem('token', data.token); await updateUI();
+    } catch(err) { authError.textContent = err.msg || 'Ocorreu um erro no login.'; }
+  });
+
+  logoutBtn.addEventListener('click', ()=>{ localStorage.removeItem('token'); welcomeMessage.textContent=''; document.getElementById('my-events-content').innerHTML=''; updateUI(); });
+
+  /* ===== Perfil + Cropper ===== */
+  document.getElementById('change-picture-btn').addEventListener('click', ()=> document.getElementById('profile-picture-input').click());
+  document.getElementById('profile-picture-input').addEventListener('change', async (e)=>{
+    const file = e.target.files?.[0]; if (!file) return;
+    // Pré-carregar imagem no cropper
+    try{
+      const tmp = await fileToJpegDataUrl(file, 2048, 0.95);
+      cropState.img = new Image();
+      cropState.img.onload = () => {
+        cropState.zoom = 1; cropState.offsetX = 0; cropState.offsetY = 0;
+        cropperImage.src = tmp;
+        cropperImage.style.transform = `translate(-50%, -50%) scale(${cropState.zoom}) translate(${cropState.offsetX}px, ${cropState.offsetY}px)`;
+        cropperZoom.value = String(cropState.zoom);
+        openModal(cropperModal);
+      };
+      cropState.img.src = tmp;
+    } catch { alert('Não foi possível carregar a imagem.'); }
+  });
+
+  function updateCropperTransform(){
+    cropperImage.style.transform = `translate(-50%, -50%) translate(${cropState.offsetX}px, ${cropState.offsetY}px) scale(${cropState.zoom})`;
+  }
+  function startDrag(e){ cropState.dragging=true; const t = (e.touches && e.touches[0]) || e; cropState.startX=t.clientX; cropState.startY=t.clientY; }
+  function moveDrag(e){ if(!cropState.dragging) return; const t = (e.touches && e.touches[0]) || e; cropState.offsetX += (t.clientX - cropState.startX)/cropState.zoom; cropState.offsetY += (t.clientY - cropState.startY)/cropState.zoom; cropState.startX=t.clientX; cropState.startY=t.clientY; updateCropperTransform(); }
+  function endDrag(){ cropState.dragging=false; }
+
+  document.querySelector('.crop-viewport').addEventListener('mousedown', startDrag);
+  window.addEventListener('mousemove', moveDrag);
+  window.addEventListener('mouseup', endDrag);
+  document.querySelector('.crop-viewport').addEventListener('touchstart', startDrag, {passive:true});
+  window.addEventListener('touchmove', moveDrag, {passive:false});
+  window.addEventListener('touchend', endDrag);
+
+  cropperZoom.addEventListener('input', ()=>{ cropState.zoom = parseFloat(cropperZoom.value||'1')||1; updateCropperTransform(); });
+  cropperCancel.addEventListener('click', ()=> closeModal(cropperModal));
+  cropperSave.addEventListener('click', async ()=>{
+    // Render circular crop 512x512
+    const size = 512;
+    const canvas = document.createElement('canvas'); canvas.width=size; canvas.height=size;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,size,size);
+    ctx.save();
+    ctx.beginPath(); ctx.arc(size/2, size/2, size/2, 0, Math.PI*2); ctx.closePath(); ctx.clip();
+    ctx.translate(size/2, size/2);
+    ctx.scale(cropState.zoom, cropState.zoom);
+    // draw image with offsets (px in pre-scale space)
+    ctx.drawImage(cropState.img, -cropState.img.width/2 + cropState.offsetX, -cropState.img.height/2 + cropState.offsetY);
+    ctx.restore();
+    const base64 = canvas.toDataURL('image/jpeg', 0.92);
+    document.getElementById('profile-picture-preview').src = base64;
+    closeModal(cropperModal);
+    // Enviar para servidor
+    const token = localStorage.getItem('token');
+    try{
+      await fetch(`${API_URL}/api/users/profile`, { method:'PUT', headers:{ 'Content-Type':'application/json', 'x-auth-token': token }, body: JSON.stringify({ profilePicture: base64 }) });
+    }catch{}
+  });
+
+  changePasswordForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    const body = { currentPassword: document.getElementById('current-password').value, newPassword: document.getElementById('new-password').value };
+    try{
+      const res = await fetch(`${API_URL}/api/users/password`, { method:'PUT', headers:{'Content-Type':'application/json','x-auth-token':token}, body: JSON.stringify(body) });
+      const data = await res.json(); if (!res.ok) throw data;
+      alert('Password alterada ✅'); changePasswordForm.classList.add('hidden'); changePasswordForm.reset();
+    }catch(err){ alert(err?.msg || 'Não foi possível alterar a password.'); }
+  });
+
+  /* ===== Garagem (API) ===== */
+  vehicleForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    const newVehicle = {
+      make: document.getElementById('modal-vehicle-make').value,
+      model: document.getElementById('modal-vehicle-model').value,
+      color: document.getElementById('modal-vehicle-color').value,
+      plate: document.getElementById('modal-vehicle-plate').value,
+    };
+    try {
+      const res = await fetch(`${API_URL}/api/garage`, { method:'POST', headers:{'Content-Type':'application/json','x-auth-token':token}, body: JSON.stringify({ make:newVehicle.make, model:newVehicle.model, matricula:newVehicle.plate, cor:newVehicle.color }) });
+      const data = await res.json(); if (!res.ok) throw data;
+      closeModal(vehicleModal);
+      await fetchUserData();
+    } catch(err) { alert(err?.msg || 'Erro ao guardar o veículo.'); }
+  });
+
+  /* ===== Dados ===== */
+  async function fetchUserData(){
+  const token = localStorage.getItem('token');
+  if (!token) return false;
+
+  try {
+    const res = await fetch(`${API_URL}/api/users/me`, {
+      headers:{'x-auth-token': token}
+    });
+    const user = await res.json();
+    if (!res.ok) throw user;
+
+    // --- preenche UI (igual ao teu) ---
+    welcomeMessage.textContent = user.nome;
+    document.getElementById('profile-picture-preview').src =
+      user.profilePicture || `https://placehold.co/96x96/1C1B22/E4E4E7?text=${user.nome?.charAt(0) || 'U'}`;
+    userGarage = user.garage || [];
+    CURRENT_USER = user;
+    renderGarage();
+
+    // mostra dashboard, esconde auth
+    authSection.classList.add('hidden');
+    dashboardSection.classList.remove('hidden');
+
+    return true;
+  } catch {
+    // token inválido -> volta ao login
+    localStorage.removeItem('token');
+    dashboardSection.classList.add('hidden');
+    authSection.classList.remove('hidden');
+    return false;
+  }
+}
+
+
+  async function fetchTrips() {
+    const token = localStorage.getItem('token'); if (!token) return;
+    try{
+      const res = await fetch(`${API_URL}/api/trips`, { headers:{'x-auth-token': token} });
+      if (!res.ok) throw new Error(await res.text());
+      const trips = await res.json();
+      renderTrips(trips, myEventsContent, false);
+      applyFilters();
+    }catch(e){}
+  }
+  async function fetchPublicTrips() {
+    try{
+      const res = await fetch(`${API_URL}/api/trips/public`);
+      if (!res.ok) throw new Error(await res.text());
+      const trips = await res.json();
+      renderTrips(trips, publicEventsContent, true);
+      applyFilters();
+    }catch(e){}
+  }
+  function makeICSDataUrl(trip) {
+    const dt = new Date(trip.date);
+    const pad = n=> String(n).padStart(2,'0');
+    const toICS = d => d.getUTCFullYear()+pad(d.getUTCMonth()+1)+pad(d.getUTCDate())+'T'+pad(d.getUTCHours())+pad(d.getUTCMinutes())+'00Z';
+    const dtstart = toICS(dt);
+    const dtend = toICS(new Date(dt.getTime() + 2*60*60*1000));
+    const desc = (trip.description || '').replace(/\n/g,'\\n');
+    const ics =
+`BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//CrewGPS//PT
+BEGIN:VEVENT
+UID:${trip._id || (Math.random().toString(36).slice(2))}
+DTSTAMP:${dtstart}
+DTSTART:${dtstart}
+DTEND:${dtend}
+SUMMARY:${trip.routeName || 'Evento'}
+DESCRIPTION:${desc}
+END:VEVENT
+END:VCALENDAR`;
+    return 'data:text/calendar;charset=utf8,' + encodeURIComponent(ics);
+  }
+  function renderTrips(trips, container, isPublic=false){
+    container.innerHTML='';
+    if(!trips || trips.length===0){
+      container.innerHTML = `<p class="text-brand-gray-200 text-center py-16">${isPublic ? 'Não há eventos públicos.' : 'Ainda não tem eventos.'}</p>`;
+      return;
+    }
+    trips.forEach(trip=>{
+      const tripDate=new Date(trip.date), now=new Date();
+      let status,statusColor,statusText;
+      if (tripDate.toDateString()===now.toDateString()){ status='active'; statusColor='green'; statusText='Ativo';}
+      else if (tripDate<now){ status='past'; statusColor='red'; statusText='Terminado';}
+      else { status='upcoming'; statusColor='blue'; statusText='Próximo';}
+
+      const anfitriao = isPublic && trip.user ? (trip.user.nome || '—') : 'Você';
+      const isMultiStop = trip.stops && trip.stops.length>0;
+      const routeTypeText = isMultiStop ? "Multi-paragens" : "Direto";
+
+      const wrap=document.createElement('div');
+      wrap.setAttribute('data-trip','1');
+      wrap.setAttribute('data-status', status);
+      wrap.setAttribute('data-mine', (!isPublic).toString());
+      wrap.className=`bg-brand-gray-800 border border-${statusColor}-500/50 p-4 rounded-xl flex justify-between items-start mb-4`;
+
+      const tools = !isPublic ? `
+        <div class="flex flex-col gap-2">
+          <button data-id="${trip._id}" class="edit-trip-btn text-brand-gray-200 hover:text-yellow-400 transition-colors" title="Editar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="m12.146.146 3.708 3.708-9.793 9.793-3.708-3.708L12.146.146zM.146 15.854l3.977-.994-2.983-2.983-.994 3.977z"/></svg>
+          </button>
+          <a href="${makeICSDataUrl(trip)}" download="evento.ics" class="text-brand-gray-200 hover:text-blue-400 transition-colors" title="Adicionar ao calendário">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M3.5 0a.5.5 0 0 1 .5.5V2h8V.5a.5.5 0 0 1 1 0V2h.5A1.5 1.5 0 0 1 15 3.5V5H1V3.5A1.5 1.5 0 0 1 2.5 2H3V.5a.5.5 0 0 1 .5-.5z"/><path d="M1 6h14v6.5A1.5 1.5 0 0 1 13.5 14h-11A1.5 1.5 0 0 1 1 12.5V6z"/></svg>
+          </a>
+          <button data-id="${trip._id}" class="invite-trip-btn text-brand-gray-200 hover:text-blue-400 transition-colors" title="Convidar amigos">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M10 5a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/><path d="M14 8s-1-1-4-1-4 1-4 1-1 0-1 1 1 3 5 3 5-2 5-3-1-1-1-1z"/></svg>
+          </button>
+          <button data-id="${trip._id}" class="delete-trip-btn text-brand-gray-200 hover:text-red-500 transition-colors" title="Apagar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1z"/></svg>
+          </button>
+        </div>` : '';
+
+      wrap.innerHTML=`
+        <div class="flex-grow">
+          <div class="flex justify-between items-start">
+            <div>
+              <h3 class="font-semibold text-white">${trip.routeName}</h3>
+              <p class="text-xs text-brand-gray-200">Anfitrião: ${anfitriao}</p>
+            </div>
+            <span class="bg-${statusColor}-500/20 text-${statusColor}-400 text-xs font-bold px-2 py-1 rounded-full">${statusText}</span>
+          </div>
+          <div class="grid grid-cols-4 gap-4 text-center my-4">
+            <div class="flex flex-col items-center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" class="mb-1" viewBox="0 0 16 16" fill="currentColor"><path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg><p class="text-xs text-brand-gray-200">${2 + (trip.stops?trip.stops.length:0)} Locais</p></div>
+            <div class="flex flex-col items-center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" class="mb-1" viewBox="0 0 16 16" fill="currentColor"><path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/><path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/></svg><p class="text-xs text-brand-gray-200">1 Participante</p></div>
+            <div class="flex flex-col items-center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" class="mb-1" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/></svg><p class="text-xs text-brand-gray-200">${trip.durationText || 'N/A'}</p></div>
+            <div class="flex flex-col items-center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" class="mb-1" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M4 4a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zM.5 8a.5.5 0 0 1 .5-.5h14a.5.5 0 0 1 0 1H1a.5.5 0 0 1-.5-.5zm0 4a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5z"/></svg><p class="text-xs text-brand-gray-200">${routeTypeText}</p></div>
+          </div>
+          <p class="text-xs text-brand-gray-200 text-center">${new Date(trip.date).toLocaleString('pt-PT')}</p>
+        </div>
+        ${tools}
+      `;
+      container.appendChild(wrap);
+    });
+  }
+
+  /* ===== Social: amigos/convites/pesquisa ===== */
+  async function refreshFriends(){
+    const token=localStorage.getItem('token'); if(!token) return;
+    try{
+      const [fr, out, inc] = await Promise.all([
+        fetch(`${API_URL}/api/friends/list`, { headers:{'x-auth-token':token} }).then(r=>r.json()),
+        fetch(`${API_URL}/api/friends/requests/outgoing`, { headers:{'x-auth-token':token} }).then(r=>r.json()).catch(()=>[]),
+        fetch(`${API_URL}/api/friends/requests/incoming`, { headers:{'x-auth-token':token} }).then(r=>r.json()).catch(()=>[])
+      ]);
+      FRIENDS_CACHE = Array.isArray(fr)?fr:[];
+      OUTGOING_CACHE = Array.isArray(out)?out:[];
+      INCOMING_CACHE = Array.isArray(inc)?inc:[];
+    }catch{ /* noop */ }
+  }
+  function getOutgoingRequestId(userId){
+    const req = OUTGOING_CACHE.find(r=> (r.to === userId) || (r.to && r.to._id === userId) );
+    return req? req._id : null;
+  }
+  function relationshipFor(userId){
+    if (FRIENDS_CACHE.some(u=>u._id===userId)) return 'friends';
+    if (OUTGOING_CACHE.some(r=>r.to === userId || r.to?._id === userId)) return 'outgoing';
+    if (INCOMING_CACHE.some(r=>r.from === userId || r.from?._id === userId)) return 'incoming';
+    return 'none';
+  }
+
+  let searchTimer=null;
+  userSearchInput?.addEventListener('input', ()=>{
+    clearTimeout(searchTimer);
+    searchTimer=setTimeout(async ()=>{
+      await refreshFriends();
+      searchUsers(userSearchInput.value);
+    }, 250);
+  });
+
+  async function searchUsers(q){
+  const token = localStorage.getItem('token');
+  const query = (q||'').trim();
+  if (query.length < 2) { userSearchResults.innerHTML=''; return; }
+  try {
+    // tentativa 1: ?query=
+    let res = await fetch(`${API_URL}/api/users/search?query=${encodeURIComponent(query)}`, { headers:{'x-auth-token':token} });
+    if (!res.ok) {
+      // fallback 2: ?q=
+      res = await fetch(`${API_URL}/api/users/search?q=${encodeURIComponent(query)}`, { headers:{'x-auth-token':token} });
+    }
+    const data = await res.json();
+    if (!res.ok) throw data;
+    renderUserSearch(Array.isArray(data)?data:[]);
+  } catch {
+    userSearchResults.innerHTML = '<p class="text-sm text-red-400">Erro a pesquisar utilizadores.</p>';
+  }
+}
+
+
+  function renderFriendsList(){
+    friendsList.innerHTML='';
+    if (!FRIENDS_CACHE.length) { friendsList.innerHTML='<p class="text-sm text-brand-gray-200">Ainda não tens amigos.</p>'; return; }
+    FRIENDS_CACHE.forEach(f=>{
+      const row=document.createElement('div');
+      row.className='flex items-center justify-between bg-brand-gray-800 border border-brand-gray-700 rounded-lg p-3';
+      row.innerHTML=`
+        <div class="flex items-center gap-3">
+          <img src="${f.profilePicture || 'https://placehold.co/40x40/1C1B22/E4E4E7?text='+ (f.nome?.[0] || 'U')}" class="w-10 h-10 rounded-full object-cover" alt="">
+          <div><p class="text-white font-semibold">${f.nome}</p></div>
+        </div>
+        <div class="flex gap-2">
+          <button class="friend-message-btn bg-brand-purple hover:bg-opacity-90 text-white text-sm font-semibold px-3 py-1.5 rounded" data-user-id="${f._id}" type="button">Mensagem</button>
+          <button class="friend-remove-btn bg-brand-gray-700 hover:bg-brand-gray-600 text-white text-sm font-semibold px-3 py-1.5 rounded" data-user-id="${f._id}" type="button">Remover</button>
+        </div>`;
+      friendsList.appendChild(row);
+    });
+  }
+  function renderFriendsList(){
+  if (!friendsList) return;              // ← sai se a lista não existir
+  friendsList.innerHTML='';
+  if (!FRIENDS_CACHE.length) {
+    friendsList.innerHTML='<p class="text-sm text-brand-gray-200">Ainda não tens amigos.</p>';
+    return;
+  }
+  FRIENDS_CACHE.forEach(f=>{
+    const row=document.createElement('div');
+    row.className='flex items-center justify-between bg-brand-gray-800 border border-brand-gray-700 rounded-lg p-3';
+    row.innerHTML=`
+      <div class="flex items-center gap-3">
+        <img src="${f.profilePicture || 'https://placehold.co/40x40/1C1B22/E4E4E7?text='+ (f.nome?.[0] || 'U')}" class="w-10 h-10 rounded-full object-cover" alt="">
+        <div><p class="text-white font-semibold">${f.nome}</p></div>
+      </div>
+      <div class="flex gap-2">
+        <button class="friend-message-btn bg-brand-purple hover:bg-opacity-90 text-white text-sm font-semibold px-3 py-1.5 rounded" data-user-id="${f._id}" type="button">Mensagem</button>
+        <button class="friend-remove-btn bg-brand-gray-700 hover:bg-brand-gray-600 text-white text-sm font-semibold px-3 py-1.5 rounded" data-user-id="${f._id}" type="button">Remover</button>
+      </div>`;
+    friendsList.appendChild(row);
+  });
+}
+
+// ➋ protege o listener
+if (friendsList) {
+  friendsList.addEventListener('click', (e)=>{
+    const msg = e.target.closest('.friend-message-btn');
+    const rm  = e.target.closest('.friend-remove-btn');
+    if (msg){
+      const id = msg.dataset.userId;
+      const friend = FRIENDS_CACHE.find(f=>f._id===id);
+      if (friend){ document.querySelector(`footer .nav-btn[data-view="3"]`).click(); openChatWith(friend); }
+    }
+    if (rm){
+      const id = rm.dataset.userId;
+      const friend = FRIENDS_CACHE.find(f=>f._id===id);
+      if (friend) openUnfriendModal(friend);
+    }
+  });
+}
+
+  userSearchResults.addEventListener('click', async (e)=>{
+    const addBtn = e.target.closest('.send-friend-btn');
+    const cancelBtn = e.target.closest('.cancel-request-btn');
+    const unfBtn = e.target.closest('.friend-chip');
+
+    if (addBtn) {
+      const toUserId = addBtn.dataset.userId;
+      try {
+        const token=localStorage.getItem('token');
+        const res = await fetch(`${API_URL}/api/friends/requests`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json','x-auth-token':token},
+          body: JSON.stringify({ toUserId, to: toUserId })
+        });
+        const data = await res.json(); if (!res.ok) throw data;
+
+        let reqId = data?._id || data?.requestId || data?.request?._id || null;
+        if (!reqId) { await refreshFriends(); reqId = getOutgoingRequestId(toUserId); }
+
+        if (reqId){
+          addBtn.outerHTML = `<button class="cancel-request-btn bg-brand-gray-700 hover:bg-brand-gray-600 text-white text-sm font-semibold px-3 py-1.5 rounded" data-request-id="${reqId}" data-user-id="${toUserId}">Cancelar pedido</button>`;
+        } else {
+          addBtn.outerHTML = `<button class="cancel-request-btn bg-brand-gray-700 hover:bg-brand-gray-600 text-white text-sm font-semibold px-3 py-1.5 rounded" data-request-id="" data-user-id="${toUserId}">Cancelar pedido</button>`;
+        }
+        await updateBadges();
+      } catch(err){
+        alert(err?.msg || 'Não foi possível enviar o pedido.');
+      }
+    }
+
+    if (cancelBtn) {
+      let requestId = cancelBtn.dataset.requestId || '';
+      const toUserId = cancelBtn.dataset.userId;
+      try {
+        const token=localStorage.getItem('token');
+        if (!requestId) { await refreshFriends(); requestId = getOutgoingRequestId(toUserId); }
+        if (!requestId) throw { msg:'Pedido não encontrado.' };
+
+        const res = await fetch(`${API_URL}/api/friends/requests/${requestId}`, { method:'DELETE', headers:{'x-auth-token':token} });
+        const data = await res.json(); if (!res.ok) throw data;
+
+        await refreshFriends();
+        searchUsers(userSearchInput.value);
+        await updateBadges();
+      } catch(err){ alert(err?.msg || 'Não foi possível cancelar o pedido.'); }
+    }
+
+    if (unfBtn) {
+      const id = unfBtn.dataset.userId;
+      const friend = FRIENDS_CACHE.find(f=>f._id===id);
+      if (friend) openUnfriendModal(friend);
+    }
+  });
+
+  async function fetchIncomingInvites(){
+    const token=localStorage.getItem('token');
+    try{
+      const res = await fetch(`${API_URL}/api/friends/requests/incoming`, { headers:{'x-auth-token':token} });
+      const list = await res.json(); if (!res.ok) throw list;
+      INCOMING_CACHE = Array.isArray(list)?list:[];
+      renderInvites(INCOMING_CACHE);
+    }catch{ invitesList.innerHTML='<p class="text-sm text-red-400 p-4">Erro a carregar convites.</p>'; }
+  }
+  function renderInvites(list){
+    invitesList.innerHTML='';
+    if (!list || list.length===0){
+      invitesList.innerHTML = '<div class="text-center py-12"><p class="text-brand-gray-200">Sem pedidos pendentes.</p></div>'; return;
+    }
+    list.forEach(fr=>{
+      const card=document.createElement('div');
+      card.className='bg-brand-gray-800 border border-brand-gray-700 rounded-lg p-4 mb-3 flex items-center justify-between';
+      card.innerHTML=`
+        <div class="flex items-center gap-3">
+          <img src="${fr.from?.profilePicture || 'https://placehold.co/40x40/1C1B22/E4E4E7?text=' + (fr.from?.nome?.[0] || 'U')}" class="w-10 h-10 rounded-full object-cover" alt="">
+          <div><p class="text-white font-semibold">${fr.from?.nome || 'Utilizador'}</p><p class="text-xs text-brand-gray-200">quer adicionar-te</p></div>
+        </div>
+        <div class="flex gap-2">
+          <button class="accept-invite bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-3 py-1.5 rounded" data-id="${fr._id}" type="button">Aceitar</button>
+          <button class="reject-invite bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-3 py-1.5 rounded" data-id="${fr._id}" type="button">Rejeitar</button>
+        </div>`;
+      invitesList.appendChild(card);
+    });
+  }
+  invitesList.addEventListener('click', async (e)=>{
+    const acc=e.target.closest('.accept-invite'), rej=e.target.closest('.reject-invite');
+    const token=localStorage.getItem('token');
+    if (acc){
+      const id=acc.dataset.id;
+      try{
+        const r=await fetch(`${API_URL}/api/friends/requests/${id}/accept`,{method:'POST',headers:{'x-auth-token':token}});
+        const d=await r.json(); if(!r.ok) throw d;
+        await refreshFriends();
+        await fetchIncomingInvites();
+        renderFriendsList();
+        if (userSearchInput.value) await searchUsers(userSearchInput.value);
+        await updateBadges();
+      }catch(err){ alert(err?.msg||'Erro ao aceitar.');}
+    }
+    if (rej){
+      const id=rej.dataset.id;
+      try{
+        const r=await fetch(`${API_URL}/api/friends/requests/${id}/reject`,{method:'POST',headers:{'x-auth-token':token}});
+        const d=await r.json(); if(!r.ok) throw d;
+        await refreshFriends();
+        await fetchIncomingInvites();
+        await updateBadges();
+      }catch(err){ alert(err?.msg||'Erro ao rejeitar.');}
+    }
+  });
+
+  /* ===== Chat estilo Instagram ===== */
+  async function fetchAllUsers(){
+    const token = localStorage.getItem('token');
+    ALL_USERS_CACHE = [];
+    const endpoints = [`${API_URL}/api/users`, `${API_URL}/api/users/all`];
+    for (const url of endpoints){
+      try{
+        const r = await fetch(url, { headers:{'x-auth-token':token} });
+        if (r.ok){
+          let data = await r.json();
+          if (Array.isArray(data?.users)) data = data.users;
+          ALL_USERS_CACHE = Array.isArray(data)?data:[];
+          return;
+        }
+      }catch{}
+    }
+    // fallback: amigos
+    ALL_USERS_CACHE = FRIENDS_CACHE.slice();
+  }
+  async function fetchChatThreads(){
+    const token=localStorage.getItem('token');
+    CHAT_THREADS = [];
+    try{
+      const res = await fetch(`${API_URL}/api/chat/threads`, { headers:{'x-auth-token':token} });
+      if (res.ok) CHAT_THREADS = await res.json();
+    }catch{}
+  }
+  function getThreadFor(userId){
+    return CHAT_THREADS.find(t => (t.userId===userId) || (t.user && t.user._id===userId) );
+  }
+  // [CHAT] Long-press para ocultar conversa
+function addLongPressToRow(row, user){
+  let timer;
+  const hold = 550;
+
+  const start = () => {
+    timer = setTimeout(() => {
+      const ok = confirm(`Ocultar conversa com ${user.nome || 'utilizador'}?`);
+      if (ok){
+        HIDDEN_THREADS.add(user._id);
+        localStorage.setItem('hiddenThreads', JSON.stringify([...HIDDEN_THREADS]));
+        renderChatThreads();
+        updateBadges();
+      }
+    }, hold);
+  };
+  const cancel = () => clearTimeout(timer);
+
+  row.addEventListener('mousedown', start);
+  row.addEventListener('touchstart', start, { passive:true });
+  ['mouseup','mouseleave','touchend','touchcancel'].forEach(ev => row.addEventListener(ev, cancel));
+}
+
+// (opcional) mostrar tudo outra vez na consola:
+// window.unhideAllChats = () => { HIDDEN_THREADS.clear(); localStorage.setItem('hiddenThreads','[]'); renderChatThreads(); updateBadges(); };
+
+  async function renderChatThreads(){
+  chatUsersList.innerHTML='';
+  const hidden = HIDDEN_THREADS;
+  const list = ALL_USERS_CACHE.filter(u=>u && u._id && !hidden.has(u._id));
+  if (!list.length){ chatUsersList.innerHTML='<p class="text-sm text-brand-gray-200">Sem utilizadores.</p>'; return; }
+
+  // Index por userId para apanhar unreadCount
+  const threadsByUser = Object.fromEntries((CHAT_THREADS||[]).map(t=>{
+    const uid = t.userId || t.user?._id; return [uid, t];
+  }));
+
+  list.forEach(u=>{
+    const thread = threadsByUser[u._id] || {};
+    const lastText = (thread.lastMessage?.text || '').trim();
+    const lastAt   = thread.lastMessage?.createdAt || thread.updatedAt || null;
+    const unread   = Number(thread.unreadCount ?? thread.unread ?? ((thread.lastMessage && !thread.lastMessage.fromMe && !thread.lastMessage.seen)? 1 : 0)) > 0;
+    const avatar = u.profilePicture || `https://placehold.co/44x44/1C1B22/E4E4E7?text=${(u.nome?.[0]||'U')}`;
+
+    const row = document.createElement('button');
+    row.className = 'chat-row w-full text-left';
+    row.innerHTML = `
+      <div class="flex-1 min-w-0">
+        <div class="primary truncate">${u.nome || 'Utilizador'}</div>
+        <div class="secondary">${lastText || '—'}</div>
+      </div>
+      <div class="middle-dot">
+        <div>${unread ? '•' : '&nbsp;'}</div>
+        <div class="ago">${lastAt ? timeAgo(lastAt) : ''}</div>
+      </div>
+      <img src="${avatar}" class="w-11 h-11 rounded-full object-cover" alt="">
+    `;
+    row.addEventListener('click', ()=> openChatWith(u));
+    addLongPressToRow(row, u);
+    chatUsersList.appendChild(row);
+  });
+}
+
+
+  function renderMessages(msgs){
+  convoMessages.innerHTML='';
+  if (!Array.isArray(msgs)) return;
+
+  const myAvatar    = CURRENT_USER?.profilePicture || 'https://placehold.co/22x22/1C1B22/E4E4E7?text=EU';
+  const theirAvatar = ACTIVE_CHAT_FRIEND?.profilePicture || `https://placehold.co/22x22/1C1B22/E4E4E7?text=${(ACTIVE_CHAT_FRIEND?.nome?.[0]||'U')}`;
+
+  // Encontrar a última mensagem minha para recibo
+  let lastOutIdx = -1;
+  for (let i = msgs.length-1; i>=0; i--) { if (msgs[i].fromMe) { lastOutIdx = i; break; } }
+
+  msgs.forEach((m, i)=>{
+    const mine = !!m.fromMe;
+    const next = msgs[i+1];
+    const isLastOfGroup = !next || !!next.fromMe !== mine;
+
+    const group = document.createElement('div');
+    group.className = `chat-group ${mine?'me':'them'} ${isLastOfGroup?'is-last':''}`;
+
+    const bubble = document.createElement('div');
+    bubble.className = `chat-bubble ${mine?'chat-me':'chat-them'}`;
+    bubble.textContent = m.text || '';
+
+    const avatar = document.createElement('img');
+    avatar.className = 'chat-avatar';
+    avatar.src = mine ? myAvatar : theirAvatar;
+    avatar.alt = '';
+
+    if (mine){
+      group.appendChild(bubble);
+      if (isLastOfGroup) group.appendChild(avatar);
+    } else {
+      if (isLastOfGroup) group.appendChild(avatar);
+      group.appendChild(bubble);
+    }
+    convoMessages.appendChild(group);
+
+    // Recibo de leitura no fim da ÚLTIMA mensagem minha
+    if (i === lastOutIdx){
+      const r = document.createElement('div');
+      r.className = 'chat-receipt';
+      r.textContent = m.seen ? '✓✓ Visto' : '✓ Enviado';
+      convoMessages.appendChild(r);
+    }
+  });
+
+  convoMessages.scrollTop = convoMessages.scrollHeight;
+}
+
+
+  async function loadMessages(){
+  if (!ACTIVE_CHAT_FRIEND) return;
+  const token=localStorage.getItem('token');
+  try{
+    const res = await fetch(`${API_URL}/api/chat/${ACTIVE_CHAT_FRIEND._id}/messages`, { headers:{'x-auth-token':token} });
+    const list = await res.json(); if (!res.ok) throw list;
+    const meMsgs = (Array.isArray(list)?list:[]).map(m=>({
+      text: m.text,
+      fromMe: m.fromMe || m.isMine || (m.from === 'me') || (m.from === 'current'),
+      seen: !!(m.seen || m.readAt)
+    }));
+    renderMessages(meMsgs);
+  }catch{}
+}
+
+
+  async function openChatWith(user){
+    ACTIVE_CHAT_FRIEND = user;
+    convoAvatar.src = user.profilePicture || `https://placehold.co/32x32/1C1B22/E4E4E7?text=${(user.nome?.[0]||'U')}`;
+    convoUsername.textContent = user.nome || 'Utilizador';
+    convoInput.value=''; renderMessages([]);
+    openModal(convoPage);
+    await loadMessages();
+    await markThreadRead(user._id);
+    await fetchChatThreads();
+    await renderChatThreads();
+    await updateBadges();
+
+    if (CHAT_POLL) clearInterval(CHAT_POLL);
+    CHAT_POLL = setInterval(async ()=>{
+  await loadMessages();
+  await fetchChatThreads();
+  await renderChatThreads();
+  await updateBadges();
+  if (ACTIVE_CHAT_FRIEND) await markThreadRead(ACTIVE_CHAT_FRIEND._id);
+}, 3000);
+
+  }
+  convoBackBtn.addEventListener('click', ()=>{ closeModal(convoPage); if (CHAT_POLL) { clearInterval(CHAT_POLL); CHAT_POLL=null; } });
+  convoForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    if (!ACTIVE_CHAT_FRIEND) return;
+    const text = convoInput.value.trim(); if (!text) return;
+    const token=localStorage.getItem('token');
+    try{
+      const res = await fetch(`${API_URL}/api/chat/${ACTIVE_CHAT_FRIEND._id}/messages`, { method:'POST', headers:{'Content-Type':'application/json','x-auth-token':token}, body: JSON.stringify({ text }) });
+      const data = await res.json(); if (!res.ok) throw data;
+      convoInput.value='';
+      await Promise.all([loadMessages(), fetchChatThreads()]);
+      await renderChatThreads();
+      await updateBadges();
+    }catch{ alert('Não foi possível enviar.'); }
+  });
+
+  /* ===== Friends Page na Conta ===== */
+  openFriendsPageBtn.addEventListener('click', async ()=>{ await refreshFriends(); renderFriendsPage(); openModal(friendsPage); });
+  friendsBackBtn.addEventListener('click', ()=> closeModal(friendsPage));
+  friendsPage.addEventListener('click', (e)=>{ if(e.target===friendsPage) closeModal(friendsPage); });
+
+  function renderFriendsPage(){
+    friendsPageList.innerHTML='';
+    if (!FRIENDS_CACHE.length){ friendsPageList.innerHTML='<p class="text-sm text-brand-gray-200">Sem amigos.</p>'; return; }
+    FRIENDS_CACHE.forEach(f=>{
+      const row=document.createElement('div');
+      row.className='flex items-center justify-between bg-brand-gray-800 border border-brand-gray-700 rounded-lg p-3';
+      row.innerHTML = `
+        <div class="flex items-center gap-3">
+          <img src="${f.profilePicture || 'https://placehold.co/40x40/1C1B22/E4E4E7?text='+ (f.nome?.[0] || 'U')}" class="w-10 h-10 rounded-full object-cover" alt="">
+          <div><p class="text-white font-semibold">${f.nome}</p></div>
+        </div>
+        <div class="flex gap-2">
+          <button class="friend-message-btn px-3 py-1.5 rounded bg-brand-purple text-white text-sm" data-user-id="${f._id}">Mensagem</button>
+          <button class="friend-remove-btn px-3 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white text-sm" data-user-id="${f._id}">Remover</button>
+        </div>
+      `;
+      friendsPageList.appendChild(row);
+    });
+  }
+  friendsPageList.addEventListener('click', (e)=>{
+    const rm = e.target.closest('.friend-remove-btn');
+    const msg = e.target.closest('.friend-message-btn');
+    if (rm){
+      const id = rm.dataset.userId;
+      const friend = FRIENDS_CACHE.find(f=>f._id===id);
+      if (friend) openUnfriendModal(friend);
+    }
+    if (msg){
+      const id = msg.dataset.userId;
+      const friend = FRIENDS_CACHE.find(f=>f._id===id);
+      if (friend){ closeModal(friendsPage); document.querySelector(`footer .nav-btn[data-view="3"]`).click(); openChatWith(friend); }
+    }
+  });
+
+  /* ===== Grupos ===== */
+  async function fetchMyGroups(){
+    const token=localStorage.getItem('token');
+    try{
+      const res = await fetch(`${API_URL}/api/groups`, { headers:{'x-auth-token':token} });
+      const data = await res.json(); if (!res.ok) throw data;
+      renderGroupsList(Array.isArray(data)?data:[]);
+    }catch{ renderGroupsList([]); }
+  }
+  function renderGroupsList(list){
+    myGroupsList.innerHTML='';
+    if (!list.length) { myGroupsList.innerHTML='<p class="text-sm text-brand-gray-200">Ainda sem grupos.</p>'; return; }
+    list.forEach(g=>{
+      const b=document.createElement('button');
+      b.className='w-full flex items-center justify-between px-2 py-2 rounded hover:bg-brand-gray-700 text-left';
+      b.innerHTML=`<span class="text-sm font-semibold">${g.name}</span><span class="text-xs text-brand-gray-200">${g.membersCount || 1} membros</span>`;
+      b.addEventListener('click', ()=> selectGroup(g));
+      myGroupsList.appendChild(b);
+    });
+  }
+  function selectGroup(g){
+    groupSelected.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="font-semibold">${g.name}</h3>
+          <p class="text-sm text-brand-gray-200">${g.description || ''}</p>
+        </div>
+        <button class="px-3 py-1 rounded bg-brand-purple text-white text-sm" id="group-invite-btn" type="button">Convidar</button>
+      </div>
+      <div class="mt-3 text-sm text-brand-gray-200">Chat e posts do grupo (a integrar) …</div>
+    `;
+    document.getElementById('group-invite-btn')?.addEventListener('click', async ()=>{
+      await refreshFriends();
+      INVITE_TRIP_ID = null;
+      openModal(inviteModal);
+      inviteSubmit.onclick = async ()=>{
+        const token=localStorage.getItem('token');
+        try{
+          const res = await fetch(`${API_URL}/api/groups/${g._id}/invite`, { method:'POST', headers:{'Content-Type':'application/json','x-auth-token':token}, body: JSON.stringify({ userIds: Array.from(INVITE_SELECTED) }) });
+          const data = await res.json(); if(!res.ok) throw data;
+          alert('Convites enviados ✅'); INVITE_SELECTED.clear(); closeModal(inviteModal);
+        }catch(err){ alert(err?.msg || 'Erro a convidar.'); }
+      };
+    });
+  }
+  createGroupForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const token=localStorage.getItem('token');
+    const body = { name: groupNameInput.value, description: groupDescInput.value };
+    try{
+      const res = await fetch(`${API_URL}/api/groups`, { method:'POST', headers:{'Content-Type':'application/json','x-auth-token':token}, body: JSON.stringify(body) });
+      const data = await res.json(); if(!res.ok) throw data;
+      groupNameInput.value=''; groupDescInput.value='';
+      await fetchMyGroups();
+      alert('Grupo criado ✅');
+    }catch(err){ alert(err?.msg || 'Não foi possível criar o grupo.'); }
+  });
+  async function searchGroups(q){
+    const token=localStorage.getItem('token');
+    try{
+      const res = await fetch(`${API_URL}/api/groups/search?q=${encodeURIComponent(q)}`, { headers:{'x-auth-token':token} });
+      const data = await res.json(); if(!res.ok) throw data;
+      renderGroupSearch(Array.isArray(data)?data:[]);
+    }catch{ renderGroupSearch([]); }
+  }
+  groupSearchBtn.addEventListener('click', async (e)=>{ e.preventDefault(); await searchGroups(groupSearchInput.value || ''); });
+  function renderGroupSearch(list){
+    groupSearchResults.innerHTML='';
+    if (!list.length){ groupSearchResults.innerHTML='<p class="text-sm text-brand-gray-200">Sem resultados.</p>'; return; }
+    list.forEach(g=>{
+      const row=document.createElement('div');
+      row.className='flex items-center justify-between bg-brand-gray-800 border border-brand-gray-700 rounded-lg p-3';
+      const joinBtn = `<button class="join-group bg-brand-purple hover:bg-opacity-90 text-white text-sm font-semibold px-3 py-1.5 rounded" data-id="${g._id}" type="button">Juntar-me</button>`;
+      row.innerHTML=`<div><p class="text-white font-semibold">${g.name}</p><p class="text-xs text-brand-gray-200">${g.description||''}</p></div>${joinBtn}`;
+      groupSearchResults.appendChild(row);
+    });
+  }
+  groupSearchResults.addEventListener('click', async (e)=>{
+    const join = e.target.closest('.join-group'); if(!join) return;
+    const id = join.dataset.id;
+    const token = localStorage.getItem('token');
+    try{
+      const res = await fetch(`${API_URL}/api/groups/${id}/join`, { method:'POST', headers:{'x-auth-token':token} });
+      const data = await res.json(); if(!res.ok) throw data;
+      await fetchMyGroups();
+      alert('Pedido enviado/aderiu ao grupo ✅');
+    }catch(err){ alert(err?.msg || 'Não foi possível aderir.'); }
+  });
+
+  /* ===== Badges ===== */
+  async function updateBadges(){
+  const invites = INCOMING_CACHE?.length || 0;
+  setBadge(badgeSocial(), invites);
+
+  // Preferir threads locais já carregadas
+  if (Array.isArray(CHAT_THREADS) && CHAT_THREADS.length){
+    const n = CHAT_THREADS.filter(t => Number(t.unreadCount ?? t.unread ?? 0) > 0).length;
+    setBadge(badgeChat(), n);
+    return;
+  }
+  // Fallback do backend (se existir)
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_URL}/api/chat/unread`, { headers:{'x-auth-token':token} });
+    if (res.ok) {
+      const data = await res.json();
+      // Se o backend devolver soma de mensagens, converte grosseiramente para 1 (pelo menos 1 thread)
+      const m = Number(data?.count || 0);
+      setBadge(badgeChat(), m>0 ? 1 : 0);
+      return;
+    }
+  } catch {}
+  setBadge(badgeChat(), 0);
+}
+
+
+  /* ===== PTR ===== */
+  enablePTR(document.getElementById('events-view'), document.getElementById('ptr-events'), async ()=>{ await Promise.all([fetchTrips(), fetchPublicTrips()]); applyFilters(); });
+  enablePTR(document.getElementById('social-view'), document.getElementById('ptr-social'), async ()=>{ await Promise.all([refreshFriends(), fetchIncomingInvites(), fetchMyGroups()]); renderFriendsList(); await renderChatThreads(); await updateBadges(); });
+  enablePTR(document.getElementById('chat-view'), document.getElementById('ptr-chat'), async ()=>{ await Promise.all([fetchAllUsers(), fetchChatThreads()]); await renderChatThreads(); await updateBadges(); });
+
+  /* ===== Inicializar ===== */
+  createEventFab.addEventListener('click', () => showCreateEventPage());
+  backFromCreateBtn.addEventListener('click', () => hideCreateEventPage());
+
+  updateUI();
+});
+</script>
+
+<!-- Salvaguarda de classes dinâmicas do Tailwind -->
+<div class="hidden">
+  bg-green-500/20 text-green-400 border-green-500/50
+  bg-red-500/20 text-red-400 border-red-500/50
+  bg-blue-500/20 text-blue-400 border-blue-500/50
+</div>
+</body>
+</html>
