@@ -1,0 +1,425 @@
+.gm-style-cc,
+.gmnoprint,
+a[href*="google.com/maps"],
+a[href*="googleusercontent.com/"],
+a[href*="gstatic.com/"],
+a[title="Abrir esta área no Google Maps"],
+img[alt="Google"] {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    cursor: default !important;
+}
+
+/* Utilidades gerais */
+.hidden {
+  display: none;
+}
+
+.nav-btn {
+  position: relative;
+  transition: color .2s;
+}
+
+.nav-active svg,
+.nav-active span {
+  color: #6D28D9;
+}
+
+/* Layout das views (carrossel horizontal) */
+.view-container {
+  display: flex;
+  transition: transform .3s ease-in-out;
+  width: 500%;
+  height: calc(100vh - 80px);
+}
+
+.view {
+  width: 20%;
+  height: 100%;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* Autocomplete Google Places */
+.pac-container {
+  background: #1C1B22;
+  border: 1px solid #32323D;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, .1);
+  margin-top: 4px;
+  z-index: 1051 !important; /* acima de modais */
+}
+
+.pac-item {
+  padding: 10px;
+  cursor: pointer;
+  color: #E4E4E7;
+  border-top: 1px solid #32323D;
+}
+
+.pac-item:first-child {
+  border-top: none;
+}
+
+.pac-item:hover {
+  background: #32323D;
+}
+
+.pac-item-query {
+  color: #fff;
+  font-weight: 500;
+}
+
+.pac-matched {
+  color: #c5b3e6;
+}
+
+/* Toggle switch */
+.toggle-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-label {
+  display: block;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid #32323D;
+  border-radius: 9999px;
+  background-color: #32323D;
+  transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+  width: 2.5rem;
+  height: 1.5rem;
+  position: relative;
+}
+
+.toggle-label::after {
+  content: "";
+  display: block;
+  width: 1.125rem;
+  height: 1.125rem;
+  background: #FFF;
+  border-radius: 9999px;
+  position: absolute;
+  top: 0.125rem;
+  left: 0.125rem;
+  transition: transform 0.2s ease-in-out;
+}
+
+.toggle-checkbox:checked + .toggle-label {
+  background-color: #6D28D9;
+  border-color: #6D28D9;
+}
+
+.toggle-checkbox:checked + .toggle-label::after {
+  transform: translateX(1rem);
+}
+
+/* Animação de modais */
+.modal-content {
+  transition: transform .25s ease, opacity .25s ease;
+}
+
+.modal-enter .modal-content {
+  opacity: 0;
+  transform: scale(.95) translateY(8px);
+}
+
+.modal-enter-to .modal-content {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* Páginas com scroll interno */
+#create-event-page {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+#event-datetime {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Em listas horizontais que devem permitir apenas pan-y */
+.no-horizontal-pan {
+  touch-action: pan-y;
+}
+
+/* Cropper de avatar (circular) */
+.crop-viewport {
+  width: 280px;
+  height: 280px;
+  border-radius: 9999px;
+  overflow: hidden;
+  margin: 0 auto;
+  border: 1px solid #32323D;
+  background: #0f0f14;
+  position: relative;
+  touch-action: none;
+}
+
+.crop-viewport img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Chat (lista, bolhas, recibos) */
+.chat-group {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  margin: 2px 0;
+}
+
+.chat-group.me {
+  justify-content: flex-end;
+}
+
+.chat-group.them {
+  justify-content: flex-start;
+}
+
+.chat-bubble {
+  max-width: 80%;
+  padding: .55rem .75rem;
+  border-radius: .9rem;
+  line-height: 1.25;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.chat-me {
+  background: #6D28D9;
+  color: #fff;
+  border-bottom-right-radius: .35rem;
+}
+
+.chat-them {
+  background: #22212b;
+  color: #E4E4E7;
+  border-bottom-left-radius: .35rem;
+}
+
+.chat-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity .15s;
+  flex-shrink: 0;
+  margin-bottom: 2px;
+}
+
+.chat-group.is-last .chat-avatar {
+  opacity: 1;
+}
+
+.chat-receipt {
+  font-size: 10px;
+  color: #a1a1aa;
+  margin-top: 2px;
+  text-align: right;
+}
+
+.chat-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #32323D;
+  border-radius: 12px;
+  background: #1C1B22;
+}
+
+.chat-row:hover {
+  background: #23222c;
+}
+
+.chat-row .primary {
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.chat-row .secondary {
+  color: #c9c9cf;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60vw;
+}
+
+.chat-row .middle-dot {
+  width: 40px;
+  text-align: center;
+  font-size: 18px;
+  line-height: 1;
+  color: #8a8a95;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-row .ago {
+  font-size: 10px;
+  color: #9b9ba3;
+  margin-top: 2px;
+}
+
+/* Badges de contagem */
+.badge {
+  position: absolute;
+  top: 6px;
+  right: 26px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  background: #ef4444;
+  color: #fff;
+  border-radius: 9999px;
+  font-size: 10px;
+  line-height: 18px;
+  text-align: center;
+  font-weight: 700;
+  transform: translate(50%, -50%);
+  display: none;
+}
+
+.badge.show {
+  display: inline-block;
+}
+
+/* Pull-to-refresh (PTR) */
+.ptr-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  will-change: height, opacity;
+  z-index: 10;
+}
+
+.ptr-bubble {
+  background: #1C1B22;
+  border: 1px solid #32323D;
+  color: #E4E4E7;
+  padding: 6px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .25);
+}
+
+.spin {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .2);
+  border-top-color: #6D28D9;
+  animation: spin .8s linear infinite;
+}
+
+/* Animações */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%   { transform: scale(1);   opacity: .8; }
+  70%  { transform: scale(1.6); opacity: 0; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* === Velocímetro redondo (HUD) === */
+:root {
+  /* a tua bottom bar tem 80px (h-20). dá +12px de folga */
+  --speedo-bottom: calc(80px + 12px);
+  --speedo-size: 88px;    /* diâmetro do velocímetro */
+  --badge-outer: 36px;    /* diâmetro do anel vermelho */
+  --badge-inner: 30px;    /* diâmetro do círculo branco */
+}
+
+/* wrapper: posiciona dentro do #map-view (que já é relative) */
+#hud-speedo {
+  position: absolute;
+  left: 16px;                  /* igual ao teu espaçamento padrão */
+  bottom: 25px;/* fica acima da bottom bar */
+  z-index: 40;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* tamanhos base */
+#hud-speedo .speedo {
+  position: relative;
+  width: var(--speedo-size);
+  height: var(--speedo-size);
+}
+
+/* aro/volume (efeito 3D suave) */
+#hud-speedo .rim {
+  position: absolute; inset: 0;
+  border-radius: 9999px;
+  background: radial-gradient(60% 60% at 50% 45%, #2f3034 0%, #1b1c1f 60%, #0e0f12 100%);
+  box-shadow:
+    inset 0 8px 14px rgba(255,255,255,.05),
+    inset 0 -8px 16px rgba(0,0,0,.6),
+    0 10px 18px rgba(0,0,0,.35);
+}
+
+/* face interna */
+#hud-speedo .face {
+  position: absolute; inset: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(to bottom, #27272a, #18181b);
+  box-shadow: inset 0 6px 18px rgba(0,0,0,.7);
+  display: grid; place-items: center;
+  outline: 2px solid rgba(39,39,42,0.7);
+}
+
+/* texto */
+#hud-speedo .value {
+  display: block; line-height: 1; text-align: center;
+  font-weight: 800; font-size: 2.25rem; /* ~text-4xl */
+  color: #fff; letter-spacing: -0.02em;
+}
+#hud-speedo .unit {
+  display: block; margin-top: 2px;
+  font-size: 11px; color: rgba(212,212,216,.8);
+  text-align: center;
+}
+
+/* badge limite */
+#speedLimitBadge { position: absolute; top: -8px; right: -8px; }
+#speedLimitBadge .outer {
+  width: var(--badge-outer); height: var(--badge-outer);
+  border-radius: 9999px; display: grid; place-items: center;
+  background: #e55362; box-shadow: 0 6px 12px rgba(0,0,0,.25);
+}
+#speedLimitBadge .inner {
+  width: var(--badge-inner); height: var(--badge-inner);
+  border-radius: 9999px; display: grid; place-items: center;
+  background: #fff; outline: 2px solid rgba(0,0,0,.6);
+}
+#speedLimitBadge .num {
+  font-weight: 800; font-size: 1rem; color: #000;
+}

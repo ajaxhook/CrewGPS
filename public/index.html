@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="pt" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Painel | CrewGPS</title>
+  <meta name="theme-color" content="#6D28D9" />
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="CrewGPS">
+  <link rel="apple-touch-icon" href="/assets/Logo.jpg">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/Logo.jpg">
+  <link rel="apple-touch-icon" sizes="152x152" href="/assets/Logo.jpg">
+  <link rel="apple-touch-icon" sizes="120x120" href="/assets/Logo.jpg">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/Logo.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/assets/Logo.png">
+  <link rel="manifest" id="app-manifest" href="/manifest.webmanifest">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Material Symbols Rounded (para ícones tipo Google Maps) -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:FILL@1" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            'brand-purple': '#6D28D9',
+            'brand-gray': { 900: '#111014', 800: '#1C1B22', 700: '#32323D', 200: '#E4E4E7', 100: '#F1F1F3' }
+          }
+        }
+      }
+    }
+  </script>
+  <script>
+    window.__initMapPending = false;
+    window.initMap = function () {
+      if (typeof window.__actualInitMap === 'function') window.__actualInitMap();
+      else window.__initMapPending = true;
+    };
+  </script>
+  <style>
+  .msr{
+    font-family:'Material Symbols Rounded';
+    font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;
+    font-size:24px;line-height:1;display:inline-flex;vertical-align:middle
+  }
+</style>
+
+</head>
+<body class="bg-brand-gray-900 text-brand-gray-100 antialiased overflow-hidden">
+  <div id="app-container" class="no-horizontal-pan">
+    <div id="auth-section" class="container mx-auto max-w-3xl p-4 sm:p-6 lg:p-8">
+      <div class="bg-brand-gray-800 border border-brand-gray-700 p-8 rounded-2xl shadow-2xl max-w-md mx-auto mt-10">
+        <div class="flex flex-col items-center mb-4">
+          <img src="/assets/Logo.png" alt="CrewGPS" class="w-28 h-28 rounded-xl object-contain mb-2">
+          <h1 class="text-3xl sm:text-4xl font-extrabold text-center text-white">CrewGPS</h1>
+        </div>
+
+        <div id="login-view">
+          <h2 class="text-xl font-semibold text-center text-brand-gray-200 mb-6">Iniciar Sessão</h2>
+          <form id="login-form">
+            <div class="mb-4">
+              <label for="login-email" class="block text-sm font-medium text-brand-gray-200 mb-1">Email</label>
+              <input type="email" id="login-email" required class="w-full px-4 py-2 bg-brand-gray-900 border border-brand-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple" autocomplete="username">
+            </div>
+            <div class="mb-4">
+              <div class="flex justify-between items-baseline">
+                <label for="login-password" class="block text-sm font-medium text-brand-gray-200 mb-1">Password</label>
+                <a href="#" id="show-forgot-password-view" class="text-xs text-brand-purple hover:underline">Esqueceu a password?</a>
+              </div>
+              <input type="password" id="login-password" required class="w-full px-4 py-2 bg-brand-gray-900 border border-brand-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple" autocomplete="current-password">
+            </div>
+            <button type="submit" class="w-full bg-brand-purple text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 transition duration-300 mt-6">Entrar</button>
+          </form>
+          <p class="text-center text-sm text-brand-gray-200 mt-6">Ainda não tem conta? <a href="#" id="show-register-view" class="font-medium text-brand-purple hover:underline">Registe-se</a></p>
+        </div>
+
+        <div id="register-view" class="hidden">
+          <h2 class="text-xl font-semibold text-center text-brand-gray-200 mb-6">Criar Conta</h2>
+          <form id="register-form">
+            <div class="mb-4"><label for="register-name" class="block text-sm font-medium text-brand-gray-200 mb-1">Nome de Utilizador</label><input type="text" id="register-name" required class="w-full px-4 py-2 bg-brand-gray-900 border border-brand-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple" autocomplete="nickname"></div>
+            <div class="mb-4"><label for="register-email" class="block text-sm font-medium text-brand-gray-200 mb-1">Email</label><input type="email" id="register-email" required class="w-full px-4 py-2 bg-brand-gray-900 border border-brand-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple" autocomplete="email"></div>
+            <div class="mb-6"><label for="register-password" class="block text-sm font-medium text-brand-gray-200 mb-1">Password</label><input type="password" id="register-password" required class="w-full px-4 py-2 bg-brand-gray-900 border-brand-gray-700 rounded-lg" autocomplete="new-password"></div>
+            <button type="submit" class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 transition duration-300">Registar</button>
+          </form>
+          <p class="text-center text-sm text-brand-gray-200 mt-6">Já tem conta? <a href="#" class="show-login-view font-medium text-brand-purple hover:underline">Inicie sessão</a></p>
+        </div>
+
+        <div id="forgot-password-view" class="hidden">
+          <h2 class="text-xl font-semibold text-center text-brand-gray-200 mb-6">Recuperar Password</h2>
+          <p class="text-center text-sm text-brand-gray-200 mb-4">Insira o seu email para receber um código.</p>
+          <form id="forgot-password-form">
+            <div class="mb-4"><label for="forgot-email" class="block text-sm font-medium text-brand-gray-200 mb-1">Email</label><input type="email" id="forgot-email" required class="w-full px-4 py-2 bg-brand-gray-900 border border-brand-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple"></div>
+            <button type="submit" class="w-full bg-brand-purple text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 transition">Enviar código</button>
+          </form>
+          <p class="text-center text-sm text-brand-gray-200 mt-6"><a href="#" class="show-login-view font-medium text-brand-purple hover:underline">Voltar ao Login</a></p>
+        </div>
+
+        <div id="reset-password-view" class="hidden">
+          <h2 class="text-xl font-semibold text-center text-brand-gray-200 mb-6">Redefinir Password</h2>
+          <form id="reset-password-form">
+            <input type="hidden" id="reset-email">
+            <div class="mb-4"><label for="reset-code" class="block text-sm font-medium text-brand-gray-200 mb-1">Código de Verificação</label><input type="text" id="reset-code" required class="w-full px-4 py-2 bg-brand-gray-900 border border-brand-gray-700 rounded-lg"></div>
+            <div class="mb-6"><label for="reset-password" class="block text-sm font-medium text-brand-gray-200 mb-1">Nova Password</label><input type="password" id="reset-password" required class="w-full px-4 py-2 bg-brand-gray-900 border-brand-gray-700 rounded-lg" autocomplete="new-password"></div>
+            <button type="submit" class="w-full bg-brand-purple text-white font-bold py-2 px-4 rounded-lg">Guardar Nova Password</button>
+          </form>
+          <p class="text-center text-sm text-brand-gray-200 mt-6"><a href="#" class="show-login-view font-medium text-brand-purple hover:underline">Voltar ao Login</a></p>
+        </div>
+
+        <div id="auth-feedback" class="mt-4 text-center text-sm font-medium"></div>
+      </div>
+    </div>
+
+    <div id="dashboard-section" class="hidden">
+      <main id="main-content" class="h-screen overflow-hidden">
+        <div class="view-container">
+
+          <div id="map-view" class="view relative">
+            <div id="map" class="w-full h-full"></div>
+
+            <!-- Toggle Modo Mapa (Conduzir / Vista Geral) -->
+            <button
+                id="map-mode-toggle"
+                class="absolute right-8 bottom-28 z-10 grid place-items-center w-14 h-14 rounded-full bg-brand-gray-800/90 border border-brand-gray-700 shadow hover:bg-brand-gray-700 transition active:scale-95"
+                type="button"
+                title="Alternar modo do mapa"
+            >
+          <span id="map-mode-icon" class="msr">navigation</span></button>
+
+
+            <!-- Velocímetro redondo -->
+            <div id="hud-speedo">
+              <div class="speedo">
+                <div class="rim"></div>
+                <div class="face">
+                  <div>
+                    <span id="speedValue" class="value">0</span>
+                    <span class="unit">km/h</span>
+                  </div>
+                </div>
+                <!--
+                <div id="speedLimitBadge">
+                  <div class="outer">
+                    <div class="inner">
+                      <span id="speedLimitValue" class="num">40</span>
+                    </div>
+                  </div>
+                </div>
+                -->
+              </div>
+            </div>
+
+            <!-- FAB criar evento -->
+            <button id="create-event-fab" class="absolute bottom-8 right-8 bg-brand-purple text-white w-16 h-16 rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-opacity-90 transition-transform duration-300 transform hover:scale-110" type="button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" /></svg>
+            </button>
+          </div>
+
+          <div id="events-view" class="view overflow-y-auto p-4 relative">
+            <div class="ptr-indicator" id="ptr-events"><div class="ptr-bubble"><span class="spin"></span><span id="ptr-events-text">A atualizar…</span></div></div>
+            <div class="flex justify-between items-center mb-4">
+              <h1 class="text-3xl font-bold text-white">Eventos</h1>
+              <button id="filter-btn" class="p-2 text-brand-gray-200 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z" /></svg></button>
+            </div>
+            <div class="my-4">
+              <div class="border-b border-brand-gray-700">
+                <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                  <button class="event-tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-brand-purple border-brand-purple" data-tab="public-events">Públicos</button>
+                  <button class="event-tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-brand-gray-200 border-transparent hover:text-white hover:border-white" data-tab="my-events">Meus Eventos</button>
+                </nav>
+              </div>
+            </div>
+            <div id="public-events-content"></div>
+            <div id="my-events-content" class="hidden"></div>
+          </div>
+
+          <div id="social-view" class="view overflow-y-auto relative">
+            <div class="ptr-indicator" id="ptr-social"><div class="ptr-bubble"><span class="spin"></span><span id="ptr-social-text">A atualizar…</span></div></div>
+            <div class="p-4">
+              <h1 class="text-3xl font-bold text-white">Social</h1>
+              <div class="my-4">
+                <div class="border-b border-brand-gray-700">
+                  <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                    <button class="social-tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-brand-purple border-brand-purple" data-tab="search">Pesquisar</button>
+                    <button class="social-tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-brand-gray-200 border-transparent hover:text-white hover:border-white" data-tab="invites">Convites</button>
+                    <button class="social-tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-brand-gray-200 border-transparent hover:text-white hover:border-white" data-tab="groups">Grupos</button>
+                  </nav>
+                </div>
+              </div>
+              <div id="search-content">
+                <input type="search" id="user-search-input" placeholder="Pesquisar por nome de utilizador..." class="w-full px-4 py-3 bg-brand-gray-800 border border-brand-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple">
+                <div id="user-search-results" class="mt-4 space-y-2"></div>
+              </div>
+              <div id="invites-content" class="hidden"></div>
+              <div id="groups-content" class="hidden">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="bg-brand-gray-800 border border-brand-gray-700 rounded-lg p-3 md:col-span-1">
+                    <div class="flex items-center justify-between mb-2">
+                      <h3 class="font-semibold">Os meus grupos</h3>
+                      <button id="refresh-groups" class="text-xs px-2 py-1 rounded bg-brand-gray-700">Atualizar</button>
+                    </div>
+                    <div id="my-groups-list" class="space-y-2 max-h-[50vh] overflow-y-auto"></div>
+                  </div>
+                  <div class="bg-brand-gray-800 border border-brand-gray-700 rounded-lg md:col-span-2 p-3 space-y-4">
+                    <div class="bg-brand-gray-900 rounded-lg p-3">
+                      <h3 class="font-semibold mb-2">Criar grupo</h3>
+                      <form id="create-group-form" class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <input id="group-name" type="text" placeholder="Nome do grupo" class="px-3 py-2 bg-brand-gray-800 rounded focus:outline-none focus:ring-2 focus:ring-brand-purple">
+                        <input id="group-desc" type="text" placeholder="Descrição (opcional)" class="px-3 py-2 bg-brand-gray-800 rounded focus:outline-none focus:ring-2 focus:ring-brand-purple">
+                        <button class="px-4 py-2 bg-brand-purple rounded font-semibold">Criar</button>
+                      </form>
+                    </div>
+                    <div class="bg-brand-gray-900 rounded-lg p-3">
+                      <h3 class="font-semibold mb-2">Pesquisar grupos</h3>
+                      <div class="flex gap-2">
+                        <input id="group-search" type="text" placeholder="Nome do grupo..." class="flex-1 px-3 py-2 bg-brand-gray-800 rounded focus:outline-none focus:ring-2 focus:ring-brand-purple">
+                        <button id="group-search-btn" class="px-4 py-2 bg-brand-gray-700 rounded">Pesquisar</button>
+                      </div>
+                      <div id="group-search-results" class="mt-3 space-y-2"></div>
+                    </div>
+                    <div id="group-selected" class="bg-brand-gray-900 rounded-lg p-3"><p class="text-sm text-brand-gray-200">Selecione um grupo para ver detalhes.</p></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="chat-view" class="view overflow-y-auto relative p-4">
+            <div class="ptr-indicator" id="ptr-chat"><div class="ptr-bubble"><span class="spin"></span><span id="ptr-chat-text">A atualizar…</span></div></div>
+            <div class="flex justify-between items-center mb-4">
+              <h1 class="text-3xl font-bold text-white">Mensagens</h1>
+              <button id="show-hidden-chats-btn" class="p-2 text-brand-gray-200 hover:text-white" title="Ver conversas ocultas"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.817 1.192-2.15 2.32-3.642 3.048C9.879 11.832 8.12 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.133 13.133 0 0 1 1.172 8z" /><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z" /></svg></button>
+            </div>
+            <div class="mb-3">
+              <input id="chat-search-input" type="search" placeholder="Pesquisar entre amigos..." class="w-full px-4 py-2 bg-brand-gray-800 border border-brand-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple">
+              <div id="chat-search-results" class="mt-2 space-y-2"></div>
+            </div>
+            <div id="chat-users-list" class="space-y-3"></div>
+          </div>
+
+          <div id="account-view" class="view overflow-y-auto relative">
+            <div class="ptr-indicator" id="ptr-account"><div class="ptr-bubble"><span class="spin"></span><span>A atualizar…</span></div></div>
+            <div class="p-4 sm:p-6 lg:p-8 container mx-auto max-w-3xl">
+              <header class="flex justify-between items-center mb-8">
+                <div><h1 class="text-3xl font-bold text-white">A Minha Conta</h1></div>
+                <div><button id="logout-btn" class="bg-brand-gray-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-gray-800 transition duration-300">Sair</button></div>
+              </header>
+
+              <div class="space-y-8">
+                <div>
+                  <h2 class="text-lg font-semibold text-white mb-4">Perfil</h2>
+                  <div class="flex items-center gap-6 bg-brand-gray-800 p-4 rounded-lg">
+                    <div class="relative">
+                      <img id="profile-picture-preview" src="https://placehold.co/96x96/1C1B22/E4E4E7?text=Perfil" class="w-24 h-24 rounded-full object-cover" alt="Foto de perfil">
+                      <button id="change-picture-btn" class="absolute -bottom-2 -right-2 bg-brand-purple p-2 rounded-full text-white hover:scale-110 transition-transform" type="button" title="Alterar foto"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" /></svg></button>
+                      <input type="file" id="profile-picture-input" class="hidden" accept="image/*">
+                    </div>
+                    <div class="flex-1">
+                      <p id="welcome-message" class="font-bold text-xl text-white"></p>
+                      <div class="mt-2"><button id="open-friends-page" class="px-3 py-1.5 rounded bg-brand-gray-700 hover:bg-brand-gray-600 text-sm">Amigos</button></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h2 class="text-lg font-semibold text-white mb-4">A Minha Garagem</h2>
+                  <div id="garage-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button id="add-vehicle-btn" class="w-full h-48 bg-brand-gray-800 border-2 border-dashed border-brand-gray-700 rounded-lg flex flex-col items-center justify-center text-brand-gray-200 hover:bg-brand-gray-700 transition-colors" type="button"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" /></svg><span class="mt-2 font-semibold">Adicionar Veículo</span></button>
+                  </div>
+                </div>
+
+                <div>
+                  <h2 class="text-lg font-semibold text-white mb-4">Segurança</h2>
+                  <div class="bg-brand-gray-800 p-4 rounded-lg space-y-4">
+                    <button id="toggle-change-password" class="w-full bg-brand-purple text-white font-bold py-2.5 px-4 rounded-lg hover:bg-opacity-90 transition" type="button">Alterar password</button>
+                    <form id="change-password-form" class="hidden space-y-3">
+                      <input type="password" id="current-password" placeholder="Password atual" class="w-full px-4 py-3 bg-brand-gray-900 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple" autocomplete="current-password">
+                      <input type="password" id="new-password" placeholder="Nova password" class="w-full px-4 py-3 bg-brand-gray-900 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple" autocomplete="new-password">
+                      <button type="submit" class="w-full bg-brand-purple text-white font-bold py-2.5 px-4 rounded-lg">Guardar password</button>
+                    </form>
+                    <hr class="border-brand-gray-700 my-4">
+                    <button id="delete-account-btn" class="w-full bg-red-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-red-700 transition" type="button">Apagar conta</button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+
+      <footer class="fixed bottom-0 left-0 right-0 h-20 bg-brand-gray-800 border-t border-brand-gray-700 flex justify-around items-center z-20">
+        <button data-view="0" class="nav-btn flex flex-col items-center justify-center text-brand-gray-200 nav-active" type="button"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" /></svg><span class="text-xs mt-1">Mapa</span></button>
+        <button data-view="1" class="nav-btn flex flex-col items-center justify-center text-brand-gray-200" type="button"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-compass" viewBox="0 0 16 16"><path d="M8 16.016a7.5 7.5 0 0 0 1.962-14.74A1 1 0 0 0 9 0H7a1 1 0 0 0-.962 1.276A7.5 7.5 0 0 0 8 16.016zm6.5-7.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0z" /><path d="m6.94 7.44 4.95-2.83-2.83 4.95-4.949 2.83 2.828-4.95z" /></svg><span class="text-xs mt-1">Eventos</span></button>
+        <button data-view="2" class="nav-btn flex flex-col items-center justify-center text-brand-gray-200" type="button"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><circle cx="22" cy="22" r="8"></circle><circle cx="46" cy="22" r="8"></circle><path d="M6 46c0-9 9-16 18-16s18 7 18 16v2H6z"></path><path d="M28 48c0-7 7-12 14-12s14 5 14 12v2H28z"></path></svg><span class="text-xs mt-1">Social</span><span id="badge-social" class="badge">0</span></button>
+        <button data-view="3" class="nav-btn flex flex-col items-center justify-center text-brand-gray-200" type="button"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3.75H6.912a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H15M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859M12 3v8.25m0 0-3-3m3 3 3-3" /></svg><span class="text-xs mt-1">Chat</span><span id="badge-chat" class="badge">0</span></button>
+        <button data-view="4" class="nav-btn flex flex-col items-center justify-center text-brand-gray-200" type="button"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" /><path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z" /></svg><span class="text-xs mt-1">Conta</span></button>
+      </footer>
+    </div>
+
+    <!-- Página criar/editar evento -->
+    <div id="create-event-page" class="hidden absolute inset-0 bg-brand-gray-900 z-50 overflow-y-auto">
+      <div class="p-4 pb-24">
+        <header class="flex items-center justify-between mb-6">
+          <button id="back-from-create-btn" class="p-2" type="button"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z" /></svg></button>
+          <h1 id="create-edit-title" class="text-xl font-bold text-white">Criar Evento</h1>
+          <div class="w-10"></div>
+        </header>
+
+        <form id="create-event-form">
+          <div class="space-y-8">
+            <div>
+              <h2 class="text-lg font-semibold text-white mb-2">Detalhes do Evento</h2>
+              <div class="space-y-4 bg-brand-gray-800 p-4 rounded-lg">
+                <input type="text" id="event-title" placeholder="Título" required class="w-full px-4 py-3 bg-brand-gray-900 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple">
+                <textarea id="event-description" placeholder="Descrição (opcional)" rows="2" class="w-full px-4 py-3 bg-brand-gray-900 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple"></textarea>
+                <div class="w-full"><input type="datetime-local" id="event-datetime" required class="w-full px-4 py-3 bg-brand-gray-900 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple" style="color-scheme: dark;"></div>
+              </div>
+            </div>
+
+            <div>
+              <h2 class="text-lg font-semibold text-white mb-2">Percurso</h2>
+              <div class="space-y-4 bg-brand-gray-800 p-4 rounded-lg">
+                <div id="page-route-summary" class="text-center text-brand-gray-200">Defina um percurso</div>
+                <div class="p-4 rounded-lg border border-brand-purple relative">
+                  <input type="text" id="event-start" placeholder="Ponto de Partida" required class="w-full bg-transparent border-none focus:outline-none">
+                  <button type="button" id="event-use-location" class="absolute right-3 top-1/2 -translate-y-1/2 text-brand-purple" title="Usar localização atual"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" /></svg></button>
+                </div>
+                <div id="page-stops-container"></div>
+                <button type="button" id="page-add-stop-btn" class="w-full flex items-center justify-center gap-2 text-brand-purple py-2"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" /><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" /></svg>Adicionar paragem</button>
+                <div class="p-4 rounded-lg border border-brand-purple"><input type="text" id="event-end" placeholder="Destino" required class="w-full bg-transparent border-none focus:outline-none"></div>
+              </div>
+            </div>
+
+            <div>
+              <h2 class="text-lg font-semibold text-white mb-2">Privacidade</h2>
+              <div class="flex items-center justify-between bg-brand-gray-800 p-4 rounded-lg">
+                <label for="event-public" class="font-medium text-brand-gray-200">Evento Público</label>
+                <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                  <input type="checkbox" name="toggle" id="event-public" class="toggle-checkbox" />
+                  <label for="event-public" class="toggle-label"></label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="page-trip-error" class="mt-4 text-center text-red-500 text-sm font-medium"></div>
+          <div class="fixed bottom-0 left-0 right-0 p-4 bg-brand-gray-900 border-t border-brand-gray-700">
+            <button id="submit-event-btn" type="submit" class="w-full bg-brand-purple text-white font-bold py-3 px-4 rounded-lg">Criar Evento</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modais & páginas auxiliares (iguais aos teus) -->
+    <div id="vehicle-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-60 p-4">
+      <div class="modal-content bg-brand-gray-800 p-6 rounded-2xl w-full max-w-sm">
+        <h2 class="text-lg font-semibold text-white mb-4">A Minha Garagem</h2>
+        <form id="vehicle-form" class="space-y-4">
+          <select id="modal-vehicle-make" required class="w-full px-4 py-3 bg-brand-gray-900 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple" style="color-scheme: dark;"></select>
+          <select id="modal-vehicle-model" required class="w-full px-4 py-3 bg-brand-gray-900 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple" style="color-scheme: dark;"></select>
+          <input type="text" id="modal-vehicle-plate" placeholder="Matrícula" required class="w-full px-4 py-3 bg-brand-gray-900 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple">
+          <div class="flex items-center gap-4">
+            <label for="modal-vehicle-color" class="text-sm font-medium text-brand-gray-200">Cor:</label>
+            <input type="color" id="modal-vehicle-color" value="#1C1B22" class="w-full h-10 bg-brand-gray-900 border-none rounded-lg cursor-pointer">
+          </div>
+          <div class="flex gap-4 pt-4">
+            <button type="button" id="close-vehicle-modal-btn" class="w-full bg-brand-gray-700 text-white font-bold py-2.5 px-4 rounded-lg">Cancelar</button>
+            <button type="submit" class="w-full bg-brand-purple text-white font-bold py-2.5 px-4 rounded-lg">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="filter-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-60 p-4">
+      <div class="modal-content bg-brand-gray-800 p-6 rounded-2xl w-full max-w-sm">
+        <h2 class="text-lg font-semibold text-white mb-4">Filtrar Eventos</h2>
+        <div class="space-y-4">
+          <div>
+            <h3 class="font-medium text-brand-gray-200 mb-2">Visibilidade</h3>
+            <label class="flex items-center"><input type="checkbox" data-filter="meus" class="filter-checkbox h-4 w-4 rounded bg-brand-gray-900 border-brand-gray-700 text-brand-purple focus:ring-brand-purple" checked> <span class="ml-2">Meus Eventos</span></label>
+            <label class="flex items-center"><input type="checkbox" data-filter="publicos" class="filter-checkbox h-4 w-4 rounded bg-brand-gray-900 border-brand-gray-700 text-brand-purple focus:ring-brand-purple" checked> <span class="ml-2">Públicos</span></label>
+          </div>
+          <div>
+            <h3 class="font-medium text-brand-gray-200 mb-2">Estado</h3>
+            <label class="flex items-center"><input type="checkbox" data-filter="upcoming" class="filter-checkbox h-4 w-4 rounded bg-brand-gray-900 border-brand-gray-700 text-brand-purple focus:ring-brand-purple" checked> <span class="ml-2 text-brand-gray-200">Próximos</span></label>
+            <label class="flex items-center"><input type="checkbox" data-filter="active" class="filter-checkbox h-4 w-4 rounded bg-brand-gray-900 border-brand-gray-700 text-brand-purple focus:ring-brand-purple" checked> <span class="ml-2 text-brand-gray-200">Ativos</span></label>
+            <label class="flex items-center"><input type="checkbox" data-filter="past" class="filter-checkbox h-4 w-4 rounded bg-brand-gray-900 border-brand-gray-700 text-brand-purple focus:ring-brand-purple" checked> <span class="ml-2 text-brand-gray-200">Terminados</span></label>
+          </div>
+        </div>
+        <button id="apply-filters-btn" class="mt-6 w-full bg-brand-purple text-white font-bold py-2.5 px-4 rounded-lg">Aplicar Filtros</button>
+      </div>
+    </div>
+
+    <div id="invite-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-60 p-4">
+      <div class="modal-content bg-brand-gray-800 p-6 rounded-2xl w-full max-w-md">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-lg font-semibold text-white">Convidar amigos</h2>
+          <button id="invite-close" class="text-brand-gray-200 hover:text-white" type="button">✕</button>
+        </div>
+        <input id="invite-search" type="text" placeholder="Pesquisar amigo..." class="w-full mb-3 px-3 py-2 bg-brand-gray-900 rounded focus:outline-none focus:ring-2 focus:ring-brand-purple">
+        <div id="invite-friends-list" class="max-h-72 overflow-y-auto space-y-2"></div>
+        <div class="mt-4 flex gap-2">
+          <button id="invite-submit" class="flex-1 bg-brand-purple text-white font-semibold py-2 rounded" type="button">Enviar convites</button>
+          <button id="invite-cancel" class="flex-1 bg-brand-gray-700 text-white font-semibold py-2 rounded" type="button">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="unfriend-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-60 p-4">
+      <div class="modal-content bg-brand-gray-800 p-6 rounded-2xl w-full max-w-sm">
+        <h2 class="text-lg font-semibold text-white mb-2">Remover amigo</h2>
+        <p id="unfriend-text" class="text-sm text-brand-gray-200 mb-4"></p>
+        <div class="flex gap-3">
+          <button id="unfriend-confirm" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded" type="button">Sim</button>
+          <button id="unfriend-cancel" class="flex-1 bg-brand-gray-700 text-white font-semibold py-2 rounded" type="button">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="chat-convo-page" class="hidden absolute inset-0 bg-brand-gray-900 z-50 flex flex-col">
+      <div class="p-4 border-b border-brand-gray-700 flex items-center justify-between">
+        <button id="convo-back-btn" class="p-2" type="button" title="Voltar"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z" /></svg></button>
+        <div class="flex items-center gap-3">
+          <img id="convo-avatar" class="w-8 h-8 rounded-full object-cover" src="" alt="">
+          <div id="convo-username" class="font-semibold"></div>
+        </div>
+        <div class="w-10"></div>
+      </div>
+      <div id="convo-messages" class="flex-1 overflow-y-auto p-3"></div>
+      <form id="convo-form" class="p-3 border-t border-brand-gray-700 flex gap-2">
+        <input id="convo-input" type="text" placeholder="Escreva uma mensagem..." class="flex-1 px-3 py-2 bg-brand-gray-900 rounded focus:outline-none focus:ring-2 focus:ring-brand-purple">
+        <button class="px-4 py-2 bg-brand-purple rounded font-semibold" type="submit">Enviar</button>
+      </form>
+    </div>
+
+    <div id="friends-page" class="hidden absolute inset-0 bg-brand-gray-900 z-50 flex flex-col">
+      <div class="p-4 border-b border-brand-gray-700 flex items-center justify-between">
+        <button id="friends-back-btn" class="p-2" type="button" title="Voltar"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z" /></svg></button>
+        <h2 class="font-semibold">Amigos</h2>
+        <div class="w-10"></div>
+      </div>
+      <div id="friends-page-list" class="p-4 space-y-2 overflow-y-auto"></div>
+    </div>
+
+    <div id="cropper-modal" class="hidden fixed inset-0 bg-black/70 z-60 flex items-center justify-center p-4">
+      <div class="modal-content bg-brand-gray-800 p-6 rounded-2xl w-full max-w-md">
+        <h2 class="text-lg font-semibold text-white mb-4">Ajustar foto de perfil</h2>
+        <div class="crop-viewport"><img id="cropper-image" alt=""></div>
+        <input type="range" id="cropper-zoom" min="1" max="3" step="0.01" value="1" class="w-full mt-4">
+        <div class="flex gap-3 mt-4">
+          <button id="cropper-cancel" class="flex-1 bg-brand-gray-700 hover:bg-brand-gray-600 text-white font-semibold py-2 rounded" type="button">Cancelar</button>
+          <button id="cropper-save" class="flex-1 bg-brand-purple hover:bg-opacity-90 text-white font-semibold py-2 rounded" type="button">Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="unhide-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-60 p-4">
+      <div class="modal-content bg-brand-gray-800 p-6 rounded-2xl w-full max-w-md">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold text-white">Conversas Ocultas</h2>
+          <button id="unhide-close-btn" class="text-brand-gray-200 hover:text-white" type="button">✕</button>
+        </div>
+        <div id="hidden-chats-list" class="max-h-72 overflow-y-auto space-y-2"></div>
+      </div>
+    </div>
+
+    <div id="event-details-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-60 p-4">
+      <div class="modal-content bg-brand-gray-800 p-6 rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col">
+        <div class="flex justify-between items-center mb-4">
+          <h2 id="event-details-title" class="text-xl font-semibold text-white truncate pr-2">Detalhes do Evento</h2>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <button id="event-details-edit-btn" class="p-2 text-brand-gray-200 hover:text-yellow-400 hidden" title="Editar Evento"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="m13.498.795.149-.149a1.207 1.207 0 1 1 1.707 1.708l-.149.148a1.5 1.5 0 0 1-.059 2.059L4.854 14.854a.5.5 0 0 1-.233.131l-4 1a.5.5 0 0 1-.606-.606l1-4a.5.5 0 0 1 .131-.232l9.642-9.642a.5.5 0 0 0-.642.56L6.854 4.854a.5.5 0 1 1-.708-.708L9.44.854A1.5 1.5 0 0 1 11.5.796a1.5 1.5 0 0 1 1.998-.001z" /></svg></button>
+            <button id="event-details-delete-btn" class="p-2 text-brand-gray-200 hover:text-red-500 hidden" title="Apagar Evento"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" /><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" /></svg></button>
+            <button id="event-details-close-btn" class="text-brand-gray-200 hover:text-white" type="button">✕</button>
+          </div>
+        </div>
+        <div class="overflow-y-auto space-y-4 flex-grow pr-2">
+          <div id="event-details-description-wrapper"><h3 class="text-sm font-medium text-brand-gray-200 mb-1">Descrição</h3><p id="event-details-description" class="text-white text-sm whitespace-pre-wrap"></p></div>
+          <div><h3 class="text-sm font-medium text-brand-gray-200 mb-1">Data e Hora</h3><p id="event-details-datetime" class="text-white"></p></div>
+          <div><h3 class="text-sm font-medium text-brand-gray-200 mb-1">Percurso</h3><p id="event-details-route" class="text-white text-sm"></p></div>
+          <div><h3 class="text-sm font-medium text-brand-gray-200 mb-1">Participantes</h3><div id="event-details-participants" class="text-white text-sm space-y-1 max-h-40 overflow-y-auto"></div></div>
+        </div>
+        <div class="mt-6 border-t border-brand-gray-700 pt-4"><button id="event-details-action-btn" class="w-full font-bold py-2.5 px-4 rounded-lg transition-colors duration-200"></button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Google Maps -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDPL6a9tPw8P20DZbh0T65Vo8JEwxPGmaw&callback=initMap&libraries=places&v=weekly&loading=async" async defer></script>
+
+  <!-- App -->
+  <script src="script.js" defer></script>
+
+  <div class="hidden">
+    bg-green-500/20 text-green-400 border-green-500/50
+    bg-red-500/20 text-red-400 border-red-500/50
+    bg-blue-500/20 text-blue-400 border-blue-500/50
+    bg-green-600 hover:bg-green-700
+    bg-red-600 hover:bg-red-700
+  </div>
+</body>
+</html>
